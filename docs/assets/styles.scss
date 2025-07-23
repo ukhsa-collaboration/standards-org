@@ -1,0 +1,27 @@
+// Use GOV.UK Frontend
+@use "pkg:govuk-frontend/dist/govuk" with ($govuk-new-organisation-colours: true,
+    $govuk-brand-colour: #007C91,
+    $govuk-link-colour: #007C91,
+    $govuk-page-width: 1100px);
+
+// Use GOV.UK Eleventy Plugin components
+@use "pkg:@x-govuk/govuk-eleventy-plugin";
+
+.govuk-notification-banner--important {
+    border-color: #4c2c92;
+    background-color: #4c2c92
+}
+
+.govuk-notification-banner--warning {
+    border-color: #f47738;
+    background-color: #f47738
+}
+
+.govuk-notification-banner--caution {
+    border-color: #d4351c;
+    background-color: #d4351c
+}
+
+.govuk-header__logo img {
+    vertical-align: bottom;
+}

@@ -1,0 +1,17 @@
+
+
+# Subject:
+# <type>: <short summary>
+#   │           │
+#   │           └─⫸ Summary in present tense. Not capitalised. No period at the end.
+#   │
+#   └─⫸ Commit Type: build|docs|feat|fix|perf|refactor|revert|test
+# 
+# Body:
+# <detailed description of changes made in the commit> (wrap at 72 characters)
+# 
+# Footer:
+# <any additional information, such as references or issue numbers>
+#
+# See CONTRIBUTING.md for more details on commit message format.
+#
