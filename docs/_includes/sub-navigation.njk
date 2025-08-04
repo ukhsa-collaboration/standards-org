@@ -1,0 +1,36 @@
+{% extends "_includes/base.njk" %}
+
+{% block beforeContent %}
+  {{ govukBreadcrumbs({
+    classes: "govuk-!-display-none-print",
+    items: breadcrumbItems
+  }) if showBreadcrumbs }}
+{% endblock %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-one-quarter-from-desktop">
+       {{ xGovukSubNavigation({
+        items: collections.navigation | eleventyNavigation(sectionKey or eleventyNavigation.parent or options.homeKey) | itemsFromNavigation(page.url, options, true)
+      }) }}
+    </div>
+    <div class="govuk-grid-column-three-quarters-from-desktop">
+      {{ appDocumentHeader({
+        caption: caption,
+        title: title,
+        description: description
+      }) }}
+
+      {{ appProseScope(content) if content }}
+
+      {% include "layouts/shared/related.njk" %}
+      
+      {# <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+      <p class="govuk-body-s">
+        Published: {{page.created | govukDate}}
+        <br />
+        Last updated: {{page.modified | govukDate}}
+      </p> #}
+    </div>
+  </div>
+{% endblock %}

@@ -141,6 +141,6 @@ vite.config.ts.timestamp-*
 # Eleventy site
 _site/
 docs/**/*
-!docs/_includes/
+!docs/_includes/**
 !docs/assets/**
 !docs/*

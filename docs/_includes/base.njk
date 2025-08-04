@@ -1,0 +1,7 @@
+{# Plugin layouts can be loaded from "layouts" #}
+{% extends "layouts/base.njk" %}
+{% set useMarkdownHeaderAsTitle = useMarkdownHeaderAsTitle | default(options.useMarkdownHeaderAsTitle) %}
+
+{% block bodyEnd %}
+  {% block scripts %}<script type="module">import mermaid from "/assets/mermaid/mermaid.esm.min.mjs";mermaid.initialize({startOnLoad:true});</script>{% endblock %}
+{% endblock %}
