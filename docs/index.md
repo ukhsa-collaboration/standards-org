@@ -14,7 +14,6 @@ options:
 ---
 <div class="govuk-grid-row">
   <section class="govuk-grid-column-one-third-from-desktop">
-    <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
     <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
       <a class="govuk-link govuk-link--no-visited-state" href="/api-design-guidelines/">
         API Design Guidelines
@@ -25,7 +24,6 @@ options:
     </p>
   </section>
   <section class="govuk-grid-column-one-third-from-desktop">
-    <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
     <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
       <a class="govuk-link govuk-link--no-visited-state" href="/development-standards/">
         Development Standards
@@ -36,7 +34,6 @@ options:
     </p>
   </section>
   <section class="govuk-grid-column-one-third-from-desktop">
-    <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
     <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
       <a class="govuk-link govuk-link--no-visited-state" href="/wow">
         Ways of Working
