@@ -4,7 +4,9 @@ import path from 'path';
 import fs from 'fs-extra';
 
 const documentation = new Map();
+
 documentation.set('api-guidelines', { outputDir: 'api-design-guidelines', branch: 'feature/eleventy' });
+//documentation.set('standards-development', { outputDir: 'development-standards', branch: 'main' });
 
 for (const [repository, { outputDir, branch }] of documentation.entries()) {
   await downloadFolderFromGitHub({
@@ -29,12 +31,11 @@ async function downloadFolderFromGitHub({ repo, branch = 'main', inputDocsPath, 
     throw new Error(`Failed to fetch ZIP: ${response.statusText}`);
   }
 
-  await new Promise((resolve, reject) => {
-    response.body
-      .pipe(unzipper.Extract({ path: tempDir }))
-      .on('close', resolve)
-      .on('error', reject);
-  });
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const directory = await unzipper.Open.buffer(buffer);
+  await directory.extract({ path: tempDir });
+
 
   // The folder inside the zip will be named like repo-branch/inputDocsPath
   const extractedBase = path.join(tempDir, `${repo.split('/')[1]}-${branch.replaceAll('/', '-')}`);
