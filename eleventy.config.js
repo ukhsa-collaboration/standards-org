@@ -70,6 +70,16 @@ export default function (eleventyConfig) {
 
   eleventyConfig.setUseGitIgnore(false);
 
+  if (process.env.GITHUB_ACTIONS) {
+    eleventyConfig.addPreprocessor("scss asset path", "scss", (data, content) => {
+      if (data.page.inputPath === './docs/assets/styles.scss') {
+        return content.replace(/^(.*\n){1}/, `$asset-path: "/standards-org/assets/";\n`);
+      }
+
+      return content;
+    });
+  }
+
   return {
     dataTemplateEngine: 'njk',
     htmlTemplateEngine: 'njk',
