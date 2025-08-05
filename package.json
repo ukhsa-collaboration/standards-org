@@ -11,7 +11,9 @@
     "prepare": "husky && git config commit.template .gitmessage",
     "content": "node src/fetch-documentation.js",
     "build": "npx eleventy",
-    "serve": "npx eleventy --serve"
+    "serve": "npx eleventy --serve",
+    "test": "node --test",
+    "coverage": "node --test --experimental-test-coverage"
   },
   "repository": {
     "type": "git",
