@@ -2,6 +2,16 @@
 {% extends "layouts/base.njk" %}
 {% set useMarkdownHeaderAsTitle = useMarkdownHeaderAsTitle | default(options.useMarkdownHeaderAsTitle) %}
 
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+
+{% block header %}
+  {{ appHeader(options.header) }}
+  {{ appServiceNavigation(options.serviceNavigation) if options.serviceNavigation }}
+  <div class="govuk-width-container" data-axe-exclude="It is acceptable that this is outside a landmark region">
+  {{ govukPhaseBanner(options.header.phaseBanner) if options.header.phaseBanner }}
+</div>
+{% endblock %}
+
 {% block bodyEnd %}
   {% block scripts %}<script type="module">import mermaid from "{{ "/assets/mermaid/mermaid.esm.min.mjs" | url }}";mermaid.initialize({startOnLoad:true});</script>{% endblock %}
 {% endblock %}

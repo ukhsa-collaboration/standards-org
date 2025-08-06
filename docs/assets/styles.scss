@@ -1,8 +1,6 @@
-$asset-path: "/assets/";
-
   // Use GOV.UK Frontend
 @use "pkg:govuk-frontend/dist/govuk" with (
-  $govuk-assets-path: $asset-path,
+  $govuk-assets-path: "/assets/",
   $govuk-new-organisation-colours: true,
   $govuk-brand-colour: #007C91,
   $govuk-link-colour: #007C91,

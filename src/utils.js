@@ -6,6 +6,8 @@ import path from 'path';
 import getGitFirstAddedTimeStamp from '../node_modules/@11ty/eleventy/src/Util/DateGitFirstAdded.js';
 import getGitLastUpdatedTimeStamp from '../node_modules/@11ty/eleventy/src/Util/DateGitLastUpdated.js';
 
+import { generateGithubPermalink } from './build/generate-docs-file-meta.js';
+
 // avoid new instance of MarkdownIt for each call
 const md = new markdownit();
 
@@ -93,27 +95,24 @@ const extractTitleFromPageData = (data) => {
  * @returns {string|null} - The default title or null.
  */
 export const getDefaultTitle = (data) => {
-  const { eleventyExcludeFromCollections, options, title} = data;
+  const { options, title } = data;
 
   const useMarkdownHeaderAsTitle
     = data.useMarkdownHeaderAsTitle // page front matter
     ?? options?.useMarkdownHeaderAsTitle // global options
     ?? false;
 
-  if (!eleventyExcludeFromCollections) {
-
-    if (!useMarkdownHeaderAsTitle) {
-      return title;
-    }
-
-    // If title has explicitly set, regardless of useMarkdownHeaderAsTitle == true
-    // return it, enables pages to have a title explicitly set in front matter
-    if (![null, "", undefined].includes(title?.trim())) {
-      return title;
-    }
-
-    return extractTitleFromPageData(data);
+  if (!useMarkdownHeaderAsTitle) {
+    return title;
   }
+
+  // If title has explicitly set, regardless of useMarkdownHeaderAsTitle == true
+  // return it, enables pages to have a title explicitly set in front matter
+  if (![null, "", undefined].includes(title?.trim())) {
+    return title;
+  }
+
+  return extractTitleFromPageData(data);
 }
 
 /**
@@ -135,16 +134,51 @@ export const getDefaultSectionKey = data => {
   }
 }
 
+const docsMeta = {}
+
+function isEmpty(obj) {
+  for (const prop in obj) {
+    if (Object.hasOwn(obj, prop)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Get the Git Hub permalink for a page.
+ * @param {*} data - The page data.
+ * @returns {Promise<string|null>} - The permalink or null.
+ */
+export const getPagePermalink = async (data) => {
+  if (isEmpty(data?.page) || data?.page?.templateSyntax?.split(',').includes('md') !== true) {
+    return null;
+  }
+
+  const { eleventyExcludeFromCollections, page } = data;
+
+  if (!eleventyExcludeFromCollections) {
+    const gitMeta = await getDocMetaForPage(page);
+    return gitMeta?.permalink;
+  }
+}
+
 /**
  * Get the Git created date for a page.
  * @param {*} data - The page data.
  * @returns {Promise<Date|null>} - The created date or null.
  */
 export const getPageGitCreatedDate = async (data) => {
+  if (isEmpty(data?.page) || data?.page?.templateSyntax?.split(',').includes('md') !== true) {
+    return null;
+  }
+
   const { eleventyExcludeFromCollections, page } = data;
 
   if (!eleventyExcludeFromCollections) {
-    return await getGitFirstAddedTimeStamp(page.inputPath) ?? page.date;
+    const gitMeta = await getDocMetaForPage(page);
+    return gitMeta.created ?? page.date;
   }
 }
 
@@ -154,10 +188,14 @@ export const getPageGitCreatedDate = async (data) => {
  * @returns {Promise<Date|null>} - The updated date or null.
  */
 export const getPageGitUpdatedDate = async (data) => {
+  if (isEmpty(data?.page) || data?.page?.templateSyntax?.split(',').includes('md') !== true) {
+    return null;
+  }
   const { eleventyExcludeFromCollections, page } = data;
 
   if (!eleventyExcludeFromCollections) {
-    return await getGitLastUpdatedTimeStamp(page.inputPath) ?? page.created;
+    const gitMeta = await getDocMetaForPage(page);
+    return gitMeta.lastUpdated ?? page.created;
   }
 }
 
@@ -230,3 +268,31 @@ export const getDefaultNavigationParent = data => {
       : parentDirectory;
   }
 }
+
+/**
+ * Get the metadata for a page from the docs meta file.
+ * 
+ * @param {*} page - The page object.
+ * @returns {Promise<Object|null>} - The metadata for the page or null if not found.
+ */
+async function getDocMetaForPage(page) {
+  const dirName = path.dirname(page.filePathStem);
+  const parentFolder = dirName === "/" ? "home" : page.filePathStem.split(path.sep)[1];
+
+  if (parentFolder === "home") {
+    return {
+      created: await getGitFirstAddedTimeStamp(page.inputPath),
+      lastUpdated: await getGitLastUpdatedTimeStamp(page.inputPath),
+      permalink: await generateGithubPermalink("docs", page.inputPath)
+    }
+  }
+
+  if (!docsMeta[parentFolder]) {
+    const { default: meta } =
+      await import(`../docs/${parentFolder}/${parentFolder}-meta.json`, { with: { type: "json" } });
+    docsMeta[parentFolder] = meta;
+  }
+
+  return docsMeta[parentFolder][page.inputPath];
+}
+

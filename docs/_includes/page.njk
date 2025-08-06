@@ -1,0 +1,30 @@
+{% extends "_includes/base.njk" %}
+
+{% block beforeContent %}
+  {{ govukBreadcrumbs({
+    classes: "govuk-!-display-none-print",
+    items: breadcrumbItems
+  }) if showBreadcrumbs }}
+{% endblock %}
+
+{% block content %}
+  {{ appDocumentHeader({
+    caption: caption,
+    title: title,
+    description: description
+  }) }}
+
+  {{ appProseScope(content) if content }}
+  {%- if eleventyExcludeFromCollections != true %}
+  <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+  <p class="govuk-body-s">
+    Published: {{page.created | govukDate}}
+    <br />
+    Last updated: {{page.modified | govukDate}}
+    <br />
+    <a href="{{ page.permalink | url }}" target="_blank" class="govuk-link">Page Source</a>
+  </p>
+  {%- endif -%}
+
+  {% include "layouts/shared/related.njk" %}
+{% endblock %}

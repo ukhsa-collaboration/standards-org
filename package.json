@@ -9,7 +9,7 @@
   },
   "scripts": {
     "prepare": "husky && git config commit.template .gitmessage",
-    "content": "node src/fetch-documentation.js",
+    "content": "node src/build/obtain-docs.js",
     "build": "npx eleventy",
     "serve": "npx eleventy --serve --watch",
     "test": "node --test",
@@ -29,7 +29,7 @@
   ],
   "dependencies": {
     "@11ty/eleventy": "^3.1.2",
-    "@x-govuk/govuk-eleventy-plugin": "^7.2.0",
+    "@x-govuk/govuk-eleventy-plugin": "^7.2.1",
     "github-slugger": "^2.0.0",
     "mermaid": "^11.9.0",
     "titlecase": "^1.1.3"

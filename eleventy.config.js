@@ -27,7 +27,10 @@ export default function (eleventyConfig) {
           `<span class="govuk-header__logotype">
             <img src="/assets/images/govuk-crest-header.svg" height="34px" alt="UKHSA Logo">
           </span>`
-      }
+      },
+      phaseBanner: { 
+        tag:{ text: "Alpha" },
+        html: `This is a new service. Help us improve it and <a class="govuk-link" href="/feedback">give your feedback</a>.` }
     },
     footer: {
       meta: {
@@ -73,7 +76,11 @@ export default function (eleventyConfig) {
   if (process.env.GITHUB_ACTIONS) {
     eleventyConfig.addPreprocessor("scss asset path", "scss", (data, content) => {
       if (data.page.inputPath === './docs/assets/styles.scss') {
-        return content.replace(/^(.*\n){1}/, `$asset-path: "/standards-org/assets/";\n`);
+        // Update asset path to use configured path prefix
+        const assetPath = `${data.options.pathPrefix}assets/`;
+        return content.replace(
+          `$govuk-assets-path: "/assets/"`,
+          `$govuk-assets-path: "${assetPath}"`);
       }
 
       return content;
