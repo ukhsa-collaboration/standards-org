@@ -327,7 +327,7 @@ Resolves issue #123"
 - Include practical examples where appropriate.
 - Follow Markdown best practices for formatting.
 - Documentation **SHOULD NOT** be added to the `docs/` directory directly (except the landing / core pages), as it is pulled in from other sources.
-- Documentation is pulled in from other repositories see `src/fetch-documentation.js` to add other repositories or to see how this works.
+- Documentation is pulled in from other repositories see `src/build/obtain-docs.js` to add other repositories or to see how this works.
 - Preview changes locally using `npx eleventy --serve` before submitting.
 
 ## Viewing the Guidelines Locally
