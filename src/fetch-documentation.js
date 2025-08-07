@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 const documentation = new Map();
 
 documentation.set('api-guidelines', { outputDir: 'api-design-guidelines', branch: 'feature/eleventy' });
-//documentation.set('standards-development', { outputDir: 'development-standards', branch: 'main' });
+documentation.set('standards-development', { outputDir: 'development-standards', branch: 'feature/eleventy' });
 
 for (const [repository, { outputDir, branch }] of documentation.entries()) {
   await downloadFolderFromGitHub({
