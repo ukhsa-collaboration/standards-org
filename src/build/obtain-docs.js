@@ -5,7 +5,7 @@ import sparseClone from "./sparse-clone.js";
 import generateFileMetadata from "./generate-docs-file-meta.js";
 
 const repos = [
-  { url: 'https://github.com/ukhsa-collaboration/api-guidelines.git', branch: 'feature/eleventy', outputDirName: 'api-design-guidelines' },
+  { url: 'https://github.com/ukhsa-collaboration/standards-api.git', branch: 'feature/eleventy', outputDirName: 'api-design-guidelines' },
   { url: 'https://github.com/ukhsa-collaboration/standards-development.git', branch: 'feature/eleventy', outputDirName: 'development-standards' },
   // Add more repos as needed
 ];
