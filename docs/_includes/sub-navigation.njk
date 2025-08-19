@@ -25,7 +25,7 @@
 
       {% include "layouts/shared/related.njk" %}
       
-      {%- if eleventyExcludeFromCollections != true %}
+      {%- if excludePublishedMeta != true %}
       <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
       <p class="govuk-body-s">
         Published: {{page.created | govukDate}}

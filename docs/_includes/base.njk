@@ -1,6 +1,7 @@
 {# Plugin layouts can be loaded from "layouts" #}
 {% extends "layouts/base.njk" %}
 {% set useMarkdownHeaderAsTitle = useMarkdownHeaderAsTitle | default(options.useMarkdownHeaderAsTitle) %}
+{% set excludePublishedMeta = excludePublishedMeta or eleventyExcludeFromCollections | default(false) %}
 
 {% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
 

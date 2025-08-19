@@ -1,4 +1,5 @@
 ---
+excludePublishedMeta: true
 layout: page
 ---
 # About
