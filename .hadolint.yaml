@@ -3,3 +3,4 @@ format: tty
 trustedRegistries:
   - docker.io
   - ghcr.io
+  - gcr.io
