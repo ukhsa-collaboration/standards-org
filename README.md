@@ -36,6 +36,19 @@ It's recommended that you use the real path (e.g. `api-design-guidelines`) you w
 
 When running the above `docker run ...` command, this runs Eleventy with the `--watch`, enabling you to just run the command once and any updates will be picked up automatically.
 
+### Linting the Dockerfile
+
+The Dockerfile will be linted and validated after pushing using the `build-dev-container.yml` workflow, however, if you
+want to run these checks locally you can:
+
+```bash
+# validate the dockerfile with docker
+docker build --check .
+
+# lint the dockerfile with hadolint
+docker run --rm -i -v "./.hadolint.yaml:/.hadolint.yaml" hadolint/hadolint < Dockerfile
+```
+
 ## Contributing
 
 We welcome contributions to improve these guidelines. Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get involved.
