@@ -1,0 +1,5 @@
+failure-threshold: warning
+format: tty
+trustedRegistries:
+  - docker.io
+  - ghcr.io
