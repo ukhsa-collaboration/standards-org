@@ -14,6 +14,7 @@ FROM gcr.io/distroless/nodejs22-debian12:nonroot
 # metadata about each published file, just use some sensible defaults. This avoids
 # needing to install git, have a git repo available, and avoids needing some json
 # meta files which are normally created during the standard site build process.
+# Note that the value of this env var doesn't matter, just that it exists.
 ENV SKIP_META=true
 
 EXPOSE 8080
