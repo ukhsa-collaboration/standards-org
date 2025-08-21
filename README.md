@@ -19,7 +19,7 @@ This also means documentation owners don't need to clone and use this repository
 To build the image from the root of this repository:
 
 ```bash
-docker build . -t ghrc.io/ukhsa-collaboration/standards-org
+docker build . -t ghcr.io/ukhsa-collaboration/standards-org
 ```
 
 At present, there is only a `latest` tag for this image.
@@ -27,7 +27,7 @@ At present, there is only a `latest` tag for this image.
 Using the image is detailed in the [standards-template](https://github.com/ukhsa-collaboration/standards-template) repository, however, for convenience here is the basic usage command:
 
 ```bash
-docker run -p "8080:8080" -v "./docs:/site/docs/<name>" ghrc.io/ukhsa-collaboration/standards-org
+docker run -p "8080:8080" -v "./docs:/site/docs/<name>" ghcr.io/ukhsa-collaboration/standards-org
 ```
 
 where `<name>` is the path you wish the docs to be made available under when viewing them.
