@@ -13,7 +13,7 @@ const md = new markdownit();
 
 /**
  * Extract text content from a Markdown AST node.
- * 
+ *
  * @param {*} node - The AST node to extract text from.
  * @returns {string} - The extracted text content.
  */
@@ -201,7 +201,7 @@ export const getPageGitUpdatedDate = async (data) => {
 
 /**
  * Get the default navigation title for a page.
- * 
+ *
  * @param {*} data - The page data.
  * @returns {string|null} - The default navigation title or null.
  */
@@ -271,11 +271,21 @@ export const getDefaultNavigationParent = data => {
 
 /**
  * Get the metadata for a page from the docs meta file.
- * 
+ *
  * @param {*} page - The page object.
  * @returns {Promise<Object|null>} - The metadata for the page or null if not found.
  */
 async function getDocMetaForPage(page) {
+  if ('SKIP_META' in process.env) {
+    // skip creating the real metadata about a page, just use some sensible defaults
+    const now = new Date();
+    return {
+      created: now,
+      lastUpdated: now,
+      permalink: page.inputPath
+    }
+  }
+
   const dirName = path.dirname(page.filePathStem);
   const parentFolder = dirName === "/" ? "home" : page.filePathStem.split(path.sep)[1];
 
@@ -288,8 +298,8 @@ async function getDocMetaForPage(page) {
   }
 
   if (!docsMeta[parentFolder]) {
-    const { default: meta } =
-      await import(`../docs/${parentFolder}/${parentFolder}-meta.json`, { with: { type: "json" } });
+    const {default: meta} =
+      await import(`../docs/${parentFolder}/${parentFolder}-meta.json`, {with: {type: "json"}});
     docsMeta[parentFolder] = meta;
   }
 
