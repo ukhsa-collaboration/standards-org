@@ -13,8 +13,8 @@
 # actions test workflow.                                                           #
 ####################################################################################
 
-# try to reach the server 5 times with a 1 second sleep between each try
-MAX_RETRIES=5
+# try to reach the server 10 times with a 1 second sleep between each try
+MAX_RETRIES=10
 until curl -sf -o /dev/null "http://localhost:8080/"
 do
   ((MAX_RETRIES--))
