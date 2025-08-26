@@ -1,15 +1,15 @@
-name: Validate, build, and push dev container
+name: Validate, test, build, and push dev container
 
 on:
   workflow_dispatch:
   push:
-    paths:
-      - Dockerfile
-      - 'docs/**'
-      - 'src/**'
-      - eleventy.config.js
-      - package.json
-      - .hadolint.yaml
+#    paths:
+#      - Dockerfile
+#      - 'docs/**'
+#      - 'src/**'
+#      - eleventy.config.js
+#      - package.json
+#      - .hadolint.yaml
 
 env:
   REGISTRY: ghcr.io
@@ -35,9 +35,35 @@ jobs:
         with:
           call: check
 
+  test-image:
+    name: Run simple end to end tests on the dev container image
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Build and start up docs server
+        run: |
+          docker build . -t standards-org-for-testing
+          docker run -d --name test-docs --rm -p "8080:8080" -v "./test/docker/docs/:/site/docs/testing/" standards-org-for-testing
+
+      - name: Run tests
+        run: bash ./test/docker/runTests.sh
+
+      - name: Clean up docs container
+        if: always()
+        # stop the container, killing it after 5 secs if needed. Use || true to avoid this step erroring
+        # if the container is already stopped (or more likely, never started)
+        run:
+          docker container stop -t 5 test-docs || true
+
   build-image:
     name: Build the image and push to GHCR
-    needs: check-image
+    needs: [check-image, test-image]
     runs-on: ubuntu-latest
     permissions:
       contents: read
