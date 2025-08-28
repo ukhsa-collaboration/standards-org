@@ -46,6 +46,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install node dependencies
+        run: npm ci
+
       - name: Run tests
         run: npm test -- test/docker/container.js
 
