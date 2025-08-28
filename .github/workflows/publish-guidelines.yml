@@ -1,6 +1,25 @@
-name: Publish Guidelines
+name: Publish Standards
 on:
   workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: Source repository that triggered the publish
+        required: true
+        default: ukhsa-collaboration/standards-org
+        type: choice
+        options:
+          - ukhsa-collaboration/standards-org
+          - ukhsa-collaboration/standards-api
+          - ukhsa-collaboration/standards-development
+      upstream_sha:
+        description: Commit SHA in the triggering repository
+        type: string
+      hmac_body:
+        description: HMAC body (repo|sha|timestamp)
+        type: string
+      hmac_sig:
+        description: HMAC signature (hex)
+        type: string
   push:
     paths:
       - 'docs/**'
@@ -9,9 +28,70 @@ on:
     branches:
       - main
 
+concurrency:
+  group: publish-site
+  cancel-in-progress: true
+
+env:
+  MAX_AGE_SECONDS: "600"
+
 jobs:
+
+  validate:
+    name: Validate trigger
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+
+    steps:
+    - name: Validate required dispatch inputs
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.upstream_repo != 'ukhsa-collaboration/standards-org'
+      run: |
+        err=0
+        [ -n "${{ github.event.inputs.upstream_sha }}" ] || { echo "Missing required input: upstream_sha"; err=1; }
+        [ -n "${{ github.event.inputs.hmac_body }}" ] || { echo "Missing required input: hmac_body"; err=1; }
+        [ -n "${{ github.event.inputs.hmac_sig }}" ] || { echo "Missing required input: hmac_sig"; err=1; }
+        if [ $err -ne 0 ]; then
+          exit 1
+        fi
+        echo "All required workflow_dispatch inputs are present"
+
+    - name: Verify HMAC & freshness
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.upstream_repo != 'ukhsa-collaboration/standards-org'
+      env:
+        SHARED_HMAC_KEY: ${{ secrets.UKHSA_STANDARDS_PUBLISH_DISPATCH_SHARED_HMAC_KEY }}
+        BODY: ${{ github.event.inputs.hmac_body }}
+        SIG: ${{ github.event.inputs.hmac_sig }}
+        MAX_AGE: ${{ env.MAX_AGE_SECONDS }}
+        EXPECTED_REPO: ${{ github.event.inputs.upstream_repo }}
+        EXPECTED_SHA: ${{ github.event.inputs.upstream_sha }}
+      run: |
+        if [ -z "$SHARED_HMAC_KEY" ]; then
+          echo "Missing SHARED_HMAC_KEY secret"; exit 1
+        fi
+
+        calc=$(printf "%s" "$BODY" | openssl dgst -sha256 -hmac "$SHARED_HMAC_KEY" | sed 's/^.* //')
+        if [ "$calc" != "$SIG" ]; then
+          echo "HMAC mismatch"; exit 1
+        fi
+
+        IFS='|' read -r repo sha ts <<< "$BODY"
+        if [ "$repo" != "$EXPECTED_REPO" ] || [ "$sha" != "$EXPECTED_SHA" ]; then
+          echo "Body fields do not match provided inputs"; exit 1
+        fi
+
+        now=$(date -u +%s)
+        age=$(( now - ts ))
+        if [ $age -gt $MAX_AGE ]; then
+          echo "Payload too old ($age s)"; exit 1
+        fi
+
+        echo "Valid trigger from $repo at $sha (age ${age}s)"
+
   build-documentation:
     name: Build Documentation
+    needs: validate
     if: github.ref == 'refs/heads/main'
     # Grant GITHUB_TOKEN the permissions required to make get git provenance when building docs
     permissions:
@@ -64,7 +144,7 @@ jobs:
 
   publish-gh-pages:
     needs: build-documentation
-    name: Publish Guidelines To Github Pages
+    name: Publish Standards To Github Pages
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
