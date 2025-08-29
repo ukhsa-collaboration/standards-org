@@ -56,9 +56,13 @@ jobs:
       - name: Install node dependencies
         run: npm ci
 
+      - name: Build container
+        run: docker build . -t standards-org-for-testing
+
       - name: Run tests
         env:
           DEBUG: "testcontainers*"
+          PREBUILT_IMAGE: "standards-org-for-testing"
         run: npm run test:container
 
   build-image:
