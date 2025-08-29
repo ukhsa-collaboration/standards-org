@@ -57,6 +57,8 @@ jobs:
         run: npm ci
 
       - name: Run tests
+        env:
+          DEBUG: "testcontainers*"
         run: npm run test:container
 
   build-image:
