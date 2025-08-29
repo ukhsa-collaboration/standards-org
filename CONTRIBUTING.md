@@ -332,7 +332,7 @@ Resolves issue #123"
 
 ## Viewing the Guidelines Locally
 
-The documentation is organised into various markdown files under the `docs/` directory. This is for the most part pulled in from other repositories using `npm run content`. You can navigate and edit these files directly but remember these changes will not be persisted to this repository so if you want to update those docs then do so at the relevant down stream repository. To preview the documentation as it will appear on the website:
+The documentation is organised into various markdown files under the `docs/` directory. This is for the most part pulled in from other repositories using `npm run fetch`. You can navigate and edit these files directly but remember these changes will not be persisted to this repository so if you want to update those docs then do so at the relevant down stream repository. To preview the documentation as it will appear on the website:
 
 ``` bash
 # Start the eleventy development server
