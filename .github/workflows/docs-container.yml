@@ -10,6 +10,7 @@ on:
       - eleventy.config.js
       - package.json
       - .hadolint.yaml
+      - test/docker
 
 env:
   REGISTRY: ghcr.io
