@@ -1,4 +1,4 @@
-name: Validate, test, build, and push dev container
+name: Validate, test, build, and push docs container for dev and test
 
 on:
   workflow_dispatch:
