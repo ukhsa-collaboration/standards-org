@@ -8,12 +8,14 @@
     "node": ">=22.0.0 <23.0.0"
   },
   "scripts": {
-    "prepare": "husky && git config commit.template .gitmessage",
-    "content": "node src/build/obtain-docs.js",
     "build": "npx eleventy",
-    "serve": "npx eleventy --serve --watch",
+    "fetch": "node src/build/obtain-docs.js",
+    "prepare": "husky && git config commit.template .gitmessage",
+    "start": "npx eleventy --serve --watch",
     "test": "node --test",
-    "coverage": "node --test --experimental-test-coverage"
+    "test:container": "node --test --test-name-pattern 'container image tests'",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "test:eleventy": "node --test --test-skip-pattern 'container image tests'"
   },
   "repository": {
     "type": "git",
@@ -40,6 +42,7 @@
     "fs-extra": "^11.3.1",
     "husky": "^9.1.7",
     "node-fetch": "^3.3.2",
+    "testcontainers": "^11.5.1",
     "unzipper": "^0.12.3"
   }
 }

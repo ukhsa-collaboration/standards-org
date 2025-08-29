@@ -1,0 +1,106 @@
+name: Validate, test, build, and push docs container for dev and test
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - Dockerfile
+      - 'docs/**'
+      - 'src/**'
+      - eleventy.config.js
+      - package.json
+      - .hadolint.yaml
+      - test/docker
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ukhsa-collaboration/standards-org
+
+jobs:
+  check-image:
+    name: Validate the image definition
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Lint Dockerfile
+        run: docker run --rm -i -v './.hadolint.yaml:/.hadolint.yaml' hadolint/hadolint < Dockerfile
+
+      - name: Validate build configuration
+        uses: docker/build-push-action@v6
+        with:
+          call: check
+
+  test-image:
+    name: Run simple end to end tests on the dev container image
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install node dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:container
+
+  build-image:
+    name: Build the image and push to GHCR
+    needs: [check-image, test-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            ${{ github.ref == 'refs/heads/main' && 'type=raw,value=latest' || '' }}
+
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

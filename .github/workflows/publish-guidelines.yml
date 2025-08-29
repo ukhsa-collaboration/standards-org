@@ -134,7 +134,7 @@ jobs:
 
     - name: Publish docs
       run: |
-        npm run content
+        npm run fetch
         npm run build
 
     - name: Upload build
