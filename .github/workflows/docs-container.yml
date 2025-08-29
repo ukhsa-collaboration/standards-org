@@ -47,6 +47,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Use Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
       - name: Install node dependencies
         run: npm ci
 
