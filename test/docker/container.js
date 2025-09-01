@@ -14,12 +14,10 @@ describe('container image tests', async () => {
   const getBaseUrl = () => `http://localhost:${container.getMappedPort(SERVER_PORT)}`;
 
   before(async () => {
+    let image;
+
     // assume we're being run from the root of the repo
-    let image = await GenericContainer.fromDockerfile("./")
-      // must use buildkit otherwise the build will succeed but the image won't start as
-      // 11ty won't have the right permissions to write files in the /site workdir
-      .withBuildkit()
-      .build();
+    image = await GenericContainer.fromDockerfile("./").build();
 
     container = await image.withExposedPorts(SERVER_PORT)
       .withWaitStrategy(Wait.forLogMessage(START_MESSAGE))
