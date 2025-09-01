@@ -14,10 +14,8 @@ describe('container image tests', async () => {
   const getBaseUrl = () => `http://localhost:${container.getMappedPort(SERVER_PORT)}`;
 
   before(async () => {
-    let image;
-
     // assume we're being run from the root of the repo
-    image = await GenericContainer.fromDockerfile("./").build();
+    let image = await GenericContainer.fromDockerfile("./").build();
 
     container = await image.withExposedPorts(SERVER_PORT)
       .withWaitStrategy(Wait.forLogMessage(START_MESSAGE))
