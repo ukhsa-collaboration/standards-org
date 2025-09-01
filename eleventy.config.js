@@ -2,7 +2,7 @@ import { govukEleventyPlugin } from '@x-govuk/govuk-eleventy-plugin'
 import { InputPathToUrlTransformPlugin } from "@11ty/eleventy";
 
 import { eleventyComputed } from './src/data/eleventy-computed.js'
-import { markdownItGitHubAlerts } from './src/markdown-it/github-alerts.js'
+import { blockQuoteRevert } from './src/markdown-it/block-quote.js'
 import { mermaidPlugin } from './src/markdown-it/mermaid.js'
 import { headingRules } from './src/markdown-it/heading.js'
 import jsonDumpSafe from './src/filters/json-filter.js';
@@ -15,11 +15,15 @@ export default function (eleventyConfig) {
     headingPermalinks: true,
     useMarkdownHeaderAsTitle: true,
     url: process.env.GITHUB_ACTIONS && 'https://ukhsa-collaboration.github.io/standards-org/',
+    templates: {
+      searchIndex: true,
+      error404: false
+    },
     header: {
       productName: 'UKHSA Engineering Standards',
       organisationName: 'UK Health Security Agency',
       search: {
-        indexPath: '/search.json',
+        indexPath: '/search-index.json',
         sitemapPath: '/sitemap'
       },
       logotype: {
@@ -59,7 +63,7 @@ export default function (eleventyConfig) {
 
   // Libraries
   eleventyConfig.amendLibrary('md',
-    md => md.use(markdownItGitHubAlerts)
+    md => md.use(blockQuoteRevert)
       .use(headingRules)
       .use(mermaidPlugin));
 

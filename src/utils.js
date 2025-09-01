@@ -36,7 +36,7 @@ const extractText = (node) => {
  * @returns {string|null} - The extracted title or null.
  */
 const extractTitleFromMarkdown = (markdown) => {
-  const tokens = md.parse(markdown, {});
+  const tokens = typeof markdown === 'string' ? md.parse(markdown, {}) : [];
 
   for (const [i, { type, tag }] of tokens.entries()) {
     if (type === 'heading_open' && tag === 'h1') {

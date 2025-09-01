@@ -5,7 +5,7 @@ import markdownit from 'markdown-it';
 import { headingRules } from '../../src/markdown-it/heading.js';
 
 // avoid new instance of MarkdownIt for each call
-describe('markdown-it', () => {
+describe('markdown-it headings', () => {
 
   let md;
 

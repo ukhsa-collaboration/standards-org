@@ -141,6 +141,9 @@ vite.config.ts.timestamp-*
 # jetbrains IDE files
 .idea
 
+# vscode IDE files
+.vscode
+
 # Eleventy site
 _site/
 docs/**/*

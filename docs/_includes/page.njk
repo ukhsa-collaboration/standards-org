@@ -15,6 +15,22 @@
   }) }}
 
   {{ appProseScope(content) if content }}
+
+  {% if showPagination %}
+    {% set previous = collections.navigation | eleventyNavigation(sectionKey or eleventyNavigation.parent or options.homeKey)  | getPreviousNavigationItem(page.url) %}
+    {% set next = collections.navigation | eleventyNavigation(sectionKey or eleventyNavigation.parent or options.homeKey)  | getNextNavigationItem(page.url) %}
+    {{ govukPagination({
+      previous: {
+        labelText: previous.title,
+        href: previous.url
+      } if previous,
+      next: {
+        labelText: next.title,
+        href: next.url
+      } if next
+    }) }}
+  {% endif %}
+
   {%- if excludePublishedMeta != true %}
   <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
   <p class="govuk-body-s">

@@ -1,5 +1,5 @@
   // Use GOV.UK Frontend
-@use "pkg:govuk-frontend/dist/govuk" with (
+@use "pkg:govuk-frontend/dist/govuk" as * with (
   $govuk-assets-path: "/assets/",
   $govuk-new-organisation-colours: true,
   $govuk-brand-colour: #007C91,
@@ -10,21 +10,16 @@
 // Use GOV.UK Eleventy Plugin components
 @use "pkg:@x-govuk/govuk-eleventy-plugin";
 
-.govuk-notification-banner--important {
-  border-color: #4c2c92;
-  background-color: #4c2c92
-}
-
-.govuk-notification-banner--warning {
-  border-color: #f47738;
-  background-color: #f47738
-}
-
-.govuk-notification-banner--caution {
-  border-color: #d4351c;
-  background-color: #d4351c
-}
-
 .govuk-header__logo img {
   vertical-align: bottom;
+}
+
+.app-inset-text--note {
+  background-color: govuk-tint(govuk-colour("blue"), 90%);
+  border-color: govuk-colour("blue");
+}
+
+.app-inset-text--tip {
+  background-color: govuk-tint(govuk-colour("green"), 75%);
+  border-color: govuk-colour("green");
 }

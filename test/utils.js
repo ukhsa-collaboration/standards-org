@@ -61,7 +61,7 @@ describe('getDefaultTitle utility', () => {
 
   it('Returns undefined if eleventyExcludeFromCollections is true', () => {
     // arrange
-    const data = { eleventyExcludeFromCollections: true, page: { rawInput: '# Test Title' }, options: { useMarkdownHeaderAsTitle: true } }
+    const data = { eleventyExcludeFromCollections: true, page: { rawInput: '# Test Title' } }
 
     // act
     const result = getDefaultTitle(data)
