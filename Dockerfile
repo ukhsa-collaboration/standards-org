@@ -32,7 +32,6 @@ COPY --chown=nonroot:nonroot .eleventyignore .
 COPY --chown=nonroot:nonroot eleventy.config.js .
 COPY --chown=nonroot:nonroot docs/_includes docs/_includes
 COPY --chown=nonroot:nonroot docs/assets docs/assets
-COPY --chown=nonroot:nonroot docs/*.njk docs/
-COPY --chown=nonroot:nonroot docs/*.md docs/
+COPY --chown=nonroot:nonroot docs/*.njk docs/*.md docs/
 
 CMD ["node_modules/.bin/eleventy", "--serve", "--watch"]
