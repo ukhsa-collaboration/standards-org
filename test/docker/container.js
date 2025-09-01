@@ -19,25 +19,8 @@ describe('container image tests', async () => {
   before(async () => {
     let image;
 
-    // find the images referenced in FROM statements in the Dockerfile we're building
-    const regex = /FROM ([a-zA-Z0-9.:_\/-]+) ?/;
-    const fromImages = readFileSync('./Dockerfile', {encoding: 'utf8'})
-      .split('\n')
-      .map(line => line.match(regex))
-      .filter(m => m)
-      .map(m => m[1]);
-    // ensure those images are already pulled before we start the build
-    const containerRuntimeClient = await getContainerRuntimeClient();
-    for (const imageName of fromImages) {
-      await containerRuntimeClient.image.pull(ImageName.fromString(imageName));
-    }
-
     // assume we're being run from the root of the repo
-    image = await GenericContainer.fromDockerfile("./")
-      // must use buildkit otherwise the build will succeed but the image won't start as
-      // 11ty won't have the right permissions to write files in the /site workdir
-      .withBuildkit()
-      .build();
+    image = await GenericContainer.fromDockerfile("./").build();
 
     container = await image.withExposedPorts(SERVER_PORT)
       .withWaitStrategy(Wait.forLogMessage(START_MESSAGE))

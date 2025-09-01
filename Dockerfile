@@ -7,8 +7,12 @@ COPY package.json .
 # ignore scripts to avoid running the prepare script
 RUN npm i --ignore-scripts
 
+# create the directories we need in the builder and then we'll copy them in the second stage
+RUN mkdir docs
+RUN mkdir _site
 
-FROM gcr.io/distroless/nodejs22-debian12:nonroot
+
+FROM gcr.io/distroless/nodejs22-debian12:debug-nonroot
 
 # env var which tells our eleventy compute custom code not to attempt to create
 # metadata about each published file, just use some sensible defaults. This avoids
@@ -20,8 +24,10 @@ ENV SKIP_META=true
 EXPOSE 8080
 WORKDIR /site
 
-COPY --chown=nonroot:nonroot --from=builder /build/node_modules node_modules/
-COPY --chown=nonroot:nonroot src src/
+COPY --chown=nonroot:nonroot --from=builder /build/node_modules node_modules
+COPY --chown=nonroot:nonroot --from=builder /build/docs docs
+COPY --chown=nonroot:nonroot --from=builder /build/_site _site
+COPY --chown=nonroot:nonroot src src
 COPY --chown=nonroot:nonroot .eleventyignore .
 COPY --chown=nonroot:nonroot eleventy.config.js .
 COPY --chown=nonroot:nonroot docs/_includes docs/_includes
