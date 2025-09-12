@@ -150,3 +150,6 @@ docs/**/*
 !docs/_includes/**
 !docs/assets/**
 !docs/*
+
+# temporarily allow this until we add a proper standards-wow repo
+!docs/wow/*
