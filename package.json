@@ -41,6 +41,6 @@
     "@commitlint/config-conventional": "^19.8.1",
     "fs-extra": "^11.3.1",
     "husky": "^9.1.7",
-    "testcontainers": "^11.5.1"
+    "testcontainers": "^11.6.0"
   }
 }
