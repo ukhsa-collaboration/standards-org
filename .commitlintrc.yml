@@ -11,4 +11,4 @@ rules:
     'revert',
     'test'
   ]]
-  scope-empty: [0, 'never']
+  scope-empty: [1, 'always']

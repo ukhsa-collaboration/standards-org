@@ -12,7 +12,9 @@ export default function (eleventyConfig) {
   // Register the plugin
   eleventyConfig.addPlugin(govukEleventyPlugin, {
     homeKey: 'home',
-    headingPermalinks: true,
+    markdown: {
+      headingPermalinks: true,
+    },
     useMarkdownHeaderAsTitle: true,
     url: process.env.GITHUB_ACTIONS && 'https://ukhsa-collaboration.github.io/standards-org/',
     templates: {
@@ -32,9 +34,10 @@ export default function (eleventyConfig) {
             <img src="/assets/images/govuk-crest-header.svg" height="34px" alt="UKHSA Logo">
           </span>`
       },
-      phaseBanner: { 
-        tag:{ text: "Alpha" },
-        html: `This is a new service. Help us improve it and <a class="govuk-link" href="/feedback">give your feedback</a>.` }
+      phaseBanner: {
+        tag: { text: "Alpha" },
+        html: `This is a new service. Help us improve it and <a class="govuk-link" href="/feedback">give your feedback</a>.`
+      }
     },
     footer: {
       meta: {
