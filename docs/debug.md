@@ -2,6 +2,7 @@
 layout: page
 eleventyExcludeFromCollections: true
 ---
+
 # Debug Navigation
 
 ## Navigation Debug

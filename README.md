@@ -43,11 +43,11 @@ To build the image from the root of this repository:
 docker build . -t ghcr.io/ukhsa-collaboration/standards-org
 ```
 
-The image is created is a [distroless](https://github.com/GoogleContainerTools/distroless) image which has been
+The image is created is a [distroless][1] image which has been
 hardened.
 If you need to debug something specific, it's recommended that you locally edit the `Dockerfile` to use the
 `debug-nonroot` tag instead of `nonroot` for the second stage, this will allow you to then run a shell in the image.
-See the [distroless](https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images) docs for more
+See the [distroless][2] docs for more
 information about this.
 Of course make sure to remove the debug part of the tag before to avoid pushing it.
 
@@ -66,20 +66,23 @@ docker run --rm -i -v "./.hadolint.yaml:/.hadolint.yaml" hadolint/hadolint < Doc
 
 ## Contributing
 
-We welcome contributions to improve these guidelines. Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to get involved.
+We welcome contributions to improve these guidelines. Please read our [Contributing Guidelines][3] for details on how to get involved.
 
 ## Licence
 
-Unless stated otherwise, the codebase is released under [the MIT License][mit].
+Unless stated otherwise, the codebase is released under [the MIT License][4].
 This covers both the codebase and any sample code in the documentation.
 
-The documentation is [© Crown copyright][copyright] and available under the terms
-of the [Open Government 3.0][ogl] licence.
+The documentation is [© Crown copyright][5] and available under the terms
+of the [Open Government 3.0][6] licence.
 
 ## Contact
 
 TODO
 
-[mit]: LICENCE
-[copyright]: https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/
-[ogl]: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+[1]: https://github.com/GoogleContainerTools/distroless
+[2]: https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
+[3]: CONTRIBUTING.md
+[4]: LICENCE
+[5]: https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/
+[6]: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/

@@ -7,11 +7,14 @@ includeInBreadcrumbs: false
 eleventyNavigation:
   title: Home
   key: home
-
+startButton:
+  href: "/about/"
+  text: "Learn more"
 options:
   header:
     productName: 'UK Health Security Agency'
 ---
+
 <div class="govuk-grid-row">
   <section class="govuk-grid-column-one-third-from-desktop">
     <h2 class="govuk-heading-m govuk-!-margin-bottom-2">

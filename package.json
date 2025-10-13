@@ -12,6 +12,8 @@
     "build": "npx eleventy",
     "fetch": "node src/build/obtain-docs.js",
     "prepare": "husky && git config commit.template .gitmessage",
+    "fmt:md": "remark . --ext .md --output",
+    "lint:md": "remark . --ext .md --frail",
     "start": "npx eleventy --serve --watch",
     "test": "node --test",
     "test:container": "node --test --test-name-pattern 'container image tests'",
@@ -33,6 +35,7 @@
   "dependencies": {
     "@11ty/eleventy": "^3.1.2",
     "@x-govuk/govuk-eleventy-plugin": "^8.0.4",
+    "fs-extra": "^11.3.2",
     "github-slugger": "^2.0.0",
     "mermaid": "^11.12.0",
     "titlecase": "^1.1.3"
@@ -40,8 +43,13 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
-    "fs-extra": "^11.3.2",
     "husky": "^9.1.7",
-    "testcontainers": "^11.7.1"
+    "testcontainers": "^11.7.1",
+    "remark-cli": "^12.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-renumber-references": "^2.0.0",
+    "remark-preset-lint-consistent": "^6.0.1",
+    "remark-preset-lint-recommended": "^7.0.1"
   }
 }

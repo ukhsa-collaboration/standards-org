@@ -1,15 +1,21 @@
 {
-  "MD033": {
-    "allowed_elements": [
-      "br",
-      "sup"
-    ]
-  },
   "MD013": false,
   "MD024": {
     "siblings_only": true
   },
   "MD029": {
     "style": "one"
+  },
+  "MD033": {
+    "allowed_elements": [
+      "br",
+      "sup"
+    ]
+  },
+  "MD054": {
+    "inline": false,
+    "url_inline": false,
+    "collapsed": false,
+    "shortcut": false
   }
 }

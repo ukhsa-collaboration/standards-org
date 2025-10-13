@@ -4,7 +4,7 @@ Contributors to this repository are expected to follow the Contributor Covenant 
 
 ## Civil Service Code
 
-The [Civil Service Code](https://www.gov.uk/government/publications/civil-service-code/the-civil-service-code).
+The [Civil Service Code][1].
 
 ## Contributor Covenant Code of Conduct
 
@@ -42,12 +42,15 @@ This Code of Conduct applies both within project spaces and in public spaces whe
 
 ### Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behaviour may be reported by contacting the project team at <codeofconduct@ukhsa.gov.uk>. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident. Further details of specific enforcement policies may be posted separately.
+Instances of abusive, harassing, or otherwise unacceptable behaviour may be reported by contacting the project team at [codeofconduct@ukhsa.gov.uk][2]. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident. Further details of specific enforcement policies may be posted separately.
 
 Project maintainers who do not follow or enforce the Code of Conduct in good faith may face temporary or permanent repercussions as determined by other members of the project's leadership.
 
 ### Attribution
 
-This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4, available at <https://www.contributor-covenant.org/version/1/4/code-of-conduct.html>
+This Code of Conduct is adapted from the [Contributor Covenant][3], version 1.4, available at [https://www.contributor-covenant.org/version/1/4/code-of-conduct.html][4]
 
-[homepage]: https://www.contributor-covenant.org
+[1]: https://www.gov.uk/government/publications/civil-service-code/the-civil-service-code
+[2]: mailto:codeofconduct@ukhsa.gov.uk
+[3]: https://www.contributor-covenant.org
+[4]: https://www.contributor-covenant.org/version/1/4/code-of-conduct.html
