@@ -9,6 +9,11 @@ const repos = [
     branch: 'main',
     outputDirName: 'development-standards',
   },
+  {
+    url: 'https://github.com/ukhsa-collaboration/standards-tech-radar.git',
+    branch: 'main',
+    outputDirName: 'tech-radar',
+  }
   // Add more repos as needed
 ];
 
