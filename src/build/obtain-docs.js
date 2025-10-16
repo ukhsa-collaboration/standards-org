@@ -3,12 +3,7 @@ import fs from 'fs-extra';
 
 import sparseClone from "./sparse-clone.js";
 import generateFileMetadata from "./generate-docs-file-meta.js";
-
-const repos = [
-  { url: 'https://github.com/ukhsa-collaboration/standards-api.git', branch: 'main', outputDirName: 'api-design-guidelines' },
-  { url: 'https://github.com/ukhsa-collaboration/standards-development.git', branch: 'main', outputDirName: 'development-standards' },
-  // Add more repos as needed
-];
+import repos from "./repos.js";
 
 const tempDir = 'cloned-docs';
 const targetDir = 'docs';
@@ -25,7 +20,7 @@ for (const repo of repos) {
     await sparseClone(repo, cloneDir);
     await generateFileMetadata(cloneDir, fileTypesToInclude);
 
-    let destDir =  path.join(targetDir, outputDirName);
+    let destDir = path.join(targetDir, outputDirName);
     await fs.remove(destDir);
     // Copy the folder to output
     await fs.copy(path.join(cloneDir, 'docs'), destDir);
