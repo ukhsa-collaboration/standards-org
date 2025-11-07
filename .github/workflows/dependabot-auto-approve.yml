@@ -1,0 +1,49 @@
+name: Dependabot Auto-Approve
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+    branches:
+      - main
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    # Check for success, an associated PR, and the correct target branch
+    if: |
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v5
+
+      - name: Fetch Dependabot Metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Approve Dependabot PR
+        if: |
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch'
+        run: |
+          REVIEW_COUNT=$(gh pr view "$PR_NUMBER" --json reviews | \
+            jq --arg sha "$HEAD_SHA" '[.reviews[] | select(.author.login == "github-actions" and .commit.oid == $sha and .state == "APPROVED")] | length')
+
+          if [ "$REVIEW_COUNT" -eq 0 ]; then
+            # Add Label
+            gh pr edit "$PR_NUMBER" --add-label "auto-approved"
+            # Approve PR
+            gh pr review --approve --body "Approved automatically as a non-major update after all checks passed." "$PR_NUMBER"
+          fi
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
