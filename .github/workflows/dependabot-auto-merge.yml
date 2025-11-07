@@ -1,0 +1,55 @@
+name: Dependabot Auto-Merge
+
+on:
+  check_suite:
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    # Check for success, an associated PR, and the correct target branch
+    if: |
+      github.event.check_suite.conclusion == 'success' &&
+      github.event.check_suite.pull_requests[0] &&
+      github.event.check_suite.pull_requests[0].base.ref == 'main'
+
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.check_suite.head_branch }}
+
+      - name: Get PR Information
+        id: get_pr_info
+        run: |
+          # Use gh to get the author of the PR
+          PR_AUTHOR=$(gh pr view "$PR_URL" --json author --jq '.author.login')
+          echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+
+      - name: Approve Dependabot PR
+        if: steps.get_pr_info.outputs.pr_author == 'app/dependabot'
+        run: |
+          gh pr checkout "$PR_URL"
+          if [ "$(gh pr status --json reviewDecision -q .currentBranch.reviewDecision)" != "APPROVED" ]; then
+            gh pr review --approve "$PR_URL"
+            gh pr edit "$PR_URL" --add-label "auto-approved"
+          else
+            echo "PR already approved, skipping additional approvals to minimize emails/notification noise.";
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge Dependabot PR
+        run: |
+          gh pr edit "$PR_URL" --add-label "fast-forward"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
