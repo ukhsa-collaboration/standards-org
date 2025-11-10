@@ -1,0 +1,52 @@
+name: Fast Forward PR Merge Initialise
+
+on:
+  pull_request:
+    types: [labeled]
+
+    branches:
+      - main
+
+jobs:
+  initialise-workflow:
+    if: |
+      github.event.label.name == 'fast-forward' &&
+      !github.event.pull_request.closed_at &&
+      github.event.pull_request.state == 'open'
+
+    name: Initialise Workflow
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+
+    env:
+      USERNAME: ${{ github.actor }}
+
+    steps:
+
+      - name: Get permissions
+        id: permission
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_VERSION: '2022-11-28'
+        run: |
+          echo "Fetching permissions for user: $USERNAME"
+          RESPONSE=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: $GH_API_VERSION" \
+            repos/$GITHUB_REPOSITORY/collaborators/$USERNAME/permission | jq -r .permission)
+          echo "Permission: $RESPONSE"
+          echo "permission=$RESPONSE" >> $GITHUB_OUTPUT
+
+      - name: Set failure message
+        uses: actions/github-script@v8
+        if: ${{ steps.permission.outputs.permission != 'write' && steps.permission.outputs.permission != 'admin' }}
+        with:
+          script: core.setFailed("You do not have permission to merge this PR. Please contact a member of ${{ github.server_url }}/orgs/${{ github.repository_owner }}/teams/api-standards-team for assistance.");
+
+      - name: Upload Event Artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: event-artifact
+          path: ${{ github.event_path }}

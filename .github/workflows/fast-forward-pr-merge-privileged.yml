@@ -1,0 +1,343 @@
+name: Fast Forward PR Merge Complete
+on:
+  workflow_run:
+    workflows: ["Fast Forward PR Merge Initialise"]
+    types:
+      - completed
+
+jobs:
+
+  import-event:
+    name: Import Event Details
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+
+    outputs:
+      trigger_event: ${{ steps.read-artifact.outputs.event_json }}
+
+    steps:
+      - name: 'Download artifact'
+        uses: actions/download-artifact@v6
+        with:
+          name: event-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 'Read artifact'
+        id: read-artifact
+        run: |
+          echo "Reading artifact"
+          echo "event_json=$(cat event.json | jq -c)" >> $GITHUB_OUTPUT
+
+  on-failure:
+    name: On Failure
+    needs: import-event
+    if: |
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
+    env:
+      PULL_NUMBER: ${{ fromJson(needs.import-event.outputs.trigger_event).pull_request.number}}
+
+    steps:
+      # Post a failure message when the triggering workflow run fails.
+      - name: Add failure comment to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_NUMBER: ${{ env.PULL_NUMBER }}
+          body: |
+            ### ⚠️ PR cannot be merged in! ⚠️
+
+            Please check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}) for details.
+        run: |
+          echo "Adding failure comment to PR"
+          RESPONSE=$(gh pr comment $PULL_NUMBER --repo "$GITHUB_REPOSITORY" -b "$body")
+          echo "response: $RESPONSE"
+
+      - name: Set failure message
+        uses: actions/github-script@v8
+        if: ${{ always() }}
+        with:
+          script: core.setFailed("Please check the workflow run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }} for details.");
+
+      - name: Remove label
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_NUMBER: ${{ env.PULL_NUMBER}}
+        run: |
+          echo "Removing 'fast-forward' label from PR"
+          RESPONSE=$(gh pr edit $PULL_NUMBER --repo "$GITHUB_REPOSITORY" --remove-label "fast-forward")
+          echo "response: $RESPONSE"
+
+  on-success:
+    name: On Success
+    needs: import-event
+    # Run only if
+    # 1. The workflow run was triggered by a pull request.
+    # 2. The workflow run was successful.
+    # 3. The pull request was labeled with 'fast-forward'.
+    # 4. The pull request is still open and not closed.
+    if: |
+      ${{ github.event.workflow_run.event == 'pull_request' }} &&
+      ${{ github.event.workflow_run.conclusion == 'success' }} &&
+      ${{ fromJson(needs.import-event.outputs.trigger_event).pull_request }} &&
+      ${{ fromJson(needs.import-event.outputs.trigger_event).action == 'labeled' }} &&
+      ${{ fromJson(needs.import-event.outputs.trigger_event).label.name == 'fast-forward' }} &&
+      ${{ !fromJson(needs.import-event.outputs.trigger_event).pull_request.closed_at }} &&
+      ${{ fromJson(needs.import-event.outputs.trigger_event).pull_request.state == 'open' }}
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
+    outputs:
+      user_permission: ${{ steps.permission.outputs.permission }}
+
+    env:
+      PULL_NUMBER: ${{ fromJson(needs.import-event.outputs.trigger_event).pull_request.number}}
+
+    steps:
+
+      - name: Get user permissions
+        id: permission
+        env:
+          USERNAME: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_VERSION: '2022-11-28'
+        run: |
+          echo "Fetching permissions for user: $USERNAME"
+          RESPONSE=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: $GH_API_VERSION" \
+            repos/$GITHUB_REPOSITORY/collaborators/$USERNAME/permission | jq -r .permission)
+          echo "Permission: $RESPONSE"
+          echo "permission=$RESPONSE" >> $GITHUB_OUTPUT
+
+      # Post a failure message when user doesn't have the required permissions to merge the PR.
+      - name: Add failure comment to PR
+        if: ${{ steps.permission.outputs.permission != 'write' && steps.permission.outputs.permission != 'admin' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_NUMBER: ${{ env.PULL_NUMBER }}
+          body: |
+            ### ⚠️ You do not have permission to merge this PR! ⚠️
+
+            Please contact a member of the [API Standards Team](${{ github.server_url }}/orgs/${{ github.repository_owner }}/teams/api-standards-team) for assistance.
+        run: |
+          echo "Adding failure comment to PR"
+          RESPONSE=$(gh pr comment $PULL_NUMBER --repo "$GITHUB_REPOSITORY" -b "$body")
+          echo "response: $RESPONSE"
+
+      - name: Set failure message
+        uses: actions/github-script@v8
+        if: ${{ steps.permission.outputs.permission != 'write' && steps.permission.outputs.permission != 'admin' }}
+        with:
+          script: core.setFailed("You do not have permission to merge this PR. Please contact a member of ${{ github.server_url }}/orgs/${{ github.repository_owner }}/teams/api-standards-team for assistance.");
+
+      - name: Remove label
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_NUMBER: ${{ env.PULL_NUMBER }}
+        run: |
+          echo "Removing 'fast-forward' label from PR"
+          RESPONSE=$(gh pr edit $PULL_NUMBER --repo "$GITHUB_REPOSITORY" --remove-label "fast-forward")
+          echo "response: $RESPONSE"
+
+  merge_comment:
+    name: FF Merge PR
+    needs:
+      - import-event
+      - on-success
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    outputs:
+      merged: ${{ steps.merge-status.outputs.merged }}
+      pr_details: ${{ steps.get-pr-details.outputs.data }}
+
+    # Run only if
+    # 1. The user has write or admin permissions on the repository.
+    if: ${{ needs.on-success.outputs.user_permission == 'write' || needs.on-success.outputs.user_permission == 'admin' }}
+
+    env:
+      PULL_NUMBER: ${{ fromJson(needs.import-event.outputs.trigger_event).pull_request.number }}
+      ERROR_MESSAGE: |
+        ### ⚠️ PR cannot be merged in! ⚠️
+
+        Please check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # Get details of the PR. The target and base branch. And also whether the PR can be merged in or not.
+      - name: Get PR details
+        id: get-pr-details
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_VERSION: '2022-11-28'
+        run: |
+          echo "Fetching pull request details"
+          RESPONSE=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: $GH_API_VERSION" \
+            repos/$GITHUB_REPOSITORY/pulls/$PULL_NUMBER)
+          echo "response: $RESPONSE"
+          echo "data=$RESPONSE" >> $GITHUB_OUTPUT
+
+      # Merge (rebase) the PR if it is allowed.
+      - name: Merge the PR
+        id: merge-status
+        shell: bash
+        env:
+          MERGEABLE_STATUS: ${{ fromJson(steps.get-pr-details.outputs.data).mergeable_state }}
+          BASE_BRANCH: ${{ fromJson(steps.get-pr-details.outputs.data).base.ref }}
+          HEAD_BRANCH: pull/${{ env.PULL_NUMBER }}/head
+          # this is used to perform the final push to the base branch to allow the standard push triggers to run.
+          REMOTE_URL: https://${{ secrets.FAST_FORWARD_MERGE_TOKEN }}@github.com/${{ github.repository }}.git
+          SUCCESS_MESSAGE: |
+            ### 🎉 Success! 🎉
+
+            PR successfully Fast Forward merged in ✅.
+        run: |
+          if [ "$MERGEABLE_STATUS" = "clean" ]; then
+            git config --global user.email "<>"
+            git config --global user.name "GitHub Actions"
+            git fetch origin +refs/$HEAD_BRANCH:refs/heads/$HEAD_BRANCH
+            git checkout $HEAD_BRANCH
+            git pull origin $HEAD_BRANCH
+            git checkout $BASE_BRANCH
+            git pull origin $BASE_BRANCH
+            git rebase $HEAD_BRANCH
+            git remote set-url origin $REMOTE_URL
+            git push origin $BASE_BRANCH
+            {
+              echo 'message<<EOF'
+              echo "${{ env.SUCCESS_MESSAGE }}"
+              echo EOF
+            } >> "$GITHUB_OUTPUT"
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo 'message<<EOF'
+              echo "${{ env.ERROR_MESSAGE }}"
+              echo EOF
+            } >> "$GITHUB_OUTPUT"
+             echo "merged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Post a success/failure comment to the PR.
+      - name: Add comment to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ steps.merge-status.outputs.message }}
+        run: |
+          echo "Adding success/failure comment to PR"
+          RESPONSE=$(gh pr comment $PULL_NUMBER --repo "$GITHUB_REPOSITORY" -b "$body")
+          echo "response: $RESPONSE"
+
+      # Post a failure message when any of the previous steps fail.
+      - name: Add failure comment to PR
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ env.ERROR_MESSAGE }}
+        run: |
+          echo "Adding failure comment to PR"
+          RESPONSE=$(gh pr comment $PULL_NUMBER --repo "$GITHUB_REPOSITORY" -b "$body")
+          echo "response: $RESPONSE"
+
+      - name: Remove label
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Removing 'fast-forward' label from PR"
+          RESPONSE=$(gh pr edit $PULL_NUMBER --repo "$GITHUB_REPOSITORY" --remove-label "fast-forward")
+          echo "response: $RESPONSE"
+
+  trigger_workflows:
+    name: Trigger Workflows
+    needs:
+      - import-event
+      - merge_comment
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      actions: write
+
+    # Run only if
+    # 1. the pull request was merged
+    if: ${{ needs.merge_comment.outputs.merged == 'true' }}
+
+    env:
+      HEAD_BRANCH: pull/${{ fromJson(needs.import-event.outputs.trigger_event).pull_request.number }}/head
+      BASE_REF: ${{ fromJson(needs.merge_comment.outputs.pr_details).base.ref }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Fetch PR Branch
+        run: |
+          git fetch origin +refs/$HEAD_BRANCH:refs/heads/$HEAD_BRANCH
+
+      - name: Filter paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ env.BASE_REF }}
+          ref: ${{ env.HEAD_BRANCH }}
+          filters: |
+            docs:
+              - 'docs/**'
+            docker
+              - Dockerfile
+              - 'docs/**'
+              - 'src/**'
+              - eleventy.config.js
+              - package.json
+              - .hadolint.yaml
+              - test/docker
+      # when merges are done by github build agent it doesn't trigger any usual workflows
+      # so here we trigger them ourselves
+      - name: Triggering 'Publish Standards' workflow
+        if: ${{ steps.changes.outputs.docs == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering 'Publish Standards' workflow"
+          gh workflow run publish-guidelines.yml --ref main
+
+      - name: Triggering 'Container CI' workflows
+        if: ${{ steps.changes.outputs.docker == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering 'Container CI' workflows"
+          gh workflow run docs-container.yml --ref main
+
+      - name: Triggering Standard CI workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering 'Standard CI' workflows"
+          gh workflow run codeql.yml --ref main
+
