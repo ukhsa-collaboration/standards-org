@@ -111,7 +111,7 @@ jobs:
         git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
     - name: Use Node.js LTS
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: '22.x'
         cache: 'npm'
