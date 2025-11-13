@@ -46,4 +46,14 @@ options:
       Guidance on how teams should work together, including collaboration, communication, and project management practices.
     </p>
   </section>
+  <section class="govuk-grid-column-one-third-from-desktop">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
+      <a class="govuk-link govuk-link--no-visited-state" href="/tech-radar/">
+        Technology Radar
+      </a>
+    </h2>
+    <p class="govuk-body">
+      Guidance on the languages and frameworks that are approved for use to develop technology solutions for UKHSA.
+    </p>
+  </section>
 </div>
