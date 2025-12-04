@@ -2,7 +2,6 @@ import { govukEleventyPlugin } from '@x-govuk/govuk-eleventy-plugin'
 import { InputPathToUrlTransformPlugin } from "@11ty/eleventy";
 
 import { eleventyComputed } from './src/data/eleventy-computed.js'
-import { blockQuoteRevert } from './src/markdown-it/block-quote.js'
 import { mermaidPlugin } from './src/markdown-it/mermaid.js'
 import { headingRules } from './src/markdown-it/heading.js'
 import jsonDumpSafe from './src/filters/json-filter.js';
@@ -14,6 +13,7 @@ export default function (eleventyConfig) {
     homeKey: 'home',
     markdown: {
       headingPermalinks: true,
+      govspeak: false,
     },
     useMarkdownHeaderAsTitle: true,
     url: process.env.GITHUB_ACTIONS && 'https://ukhsa-collaboration.github.io/standards-org/',
@@ -66,8 +66,7 @@ export default function (eleventyConfig) {
 
   // Libraries
   eleventyConfig.amendLibrary('md',
-    md => md.use(blockQuoteRevert)
-      .use(headingRules)
+    md => md.use(headingRules)
       .use(mermaidPlugin));
 
   // Global data
