@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
-import {before, after, describe, it} from 'node:test';
-
-import {GenericContainer, Wait} from 'testcontainers';
+import { before, after, describe, it } from 'node:test';
+import { GenericContainer, Wait } from 'testcontainers';
 
 describe('container image tests', async () => {
   const SERVER_PORT = 8080;
@@ -12,10 +11,15 @@ describe('container image tests', async () => {
   let container;
 
   const getBaseUrl = () => `http://localhost:${container.getMappedPort(SERVER_PORT)}`;
+  const isCI = !!process.env.CI;
+  const imageName = isCI ? `${process.env.REGISTRY}/${process.env.IMAGE_NAME}:sha-${process.env.GITHUB_SHA?.slice(0, 7)}` : null;
 
   before(async () => {
     // assume we're being run from the root of the repo
-    let image = await GenericContainer.fromDockerfile("./").build();
+    let image = await (
+      isCI ? // if in CI, use the prebuilt image; else build from local Dockerfile
+        new GenericContainer(imageName) :
+        GenericContainer.fromDockerfile("./").build());
 
     container = await image.withExposedPorts(SERVER_PORT)
       .withWaitStrategy(Wait.forLogMessage(START_MESSAGE))

@@ -15,13 +15,15 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ukhsa-collaboration/standards-org
+  CI: true
 
 jobs:
   check-image:
     name: Validate the image definition
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -36,11 +38,15 @@ jobs:
         with:
           call: check
 
-  test-image:
-    name: Run simple end to end tests on the dev container image
+  build-test-and-push-image:
+    name: Build the image, test it, and push to GHCR
+    needs: check-image
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+      packages: write
+      attestations: write
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -56,24 +62,6 @@ jobs:
       - name: Install node dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm run test:container
-
-  build-image:
-    name: Build the image and push to GHCR
-    needs: [check-image, test-image]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -88,18 +76,32 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha
-            ${{ github.ref == 'refs/heads/main' && 'type=raw,value=latest' || '' }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and export to Docker
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Run tests
+        run: npm run test:container
 
       - name: Build and push image
         id: push
         uses: docker/build-push-action@v6
+        if: success() && github.ref == 'refs/heads/main'
         with:
           context: .
           push: true
+          provenance: true
           tags: ${{ steps.meta.outputs.tags }}
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3
+        if: success() && github.ref == 'refs/heads/main'
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
