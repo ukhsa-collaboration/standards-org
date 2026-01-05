@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload Event Artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: event-artifact
           path: ${{ github.event_path }}
