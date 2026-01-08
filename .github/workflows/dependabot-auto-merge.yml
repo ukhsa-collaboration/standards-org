@@ -1,0 +1,295 @@
+name: Dependabot Auto Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Generate App Token
+        id: auto-merge-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_PRIVATE_KEY }}
+          repositories: |
+            ${{ github.event.repository.name }}
+          permission-pull-requests: write
+          permission-contents: write
+          permission-checks: read
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.auto-merge-token.outputs.token }}
+
+      - name: Attempt Merge
+        id: attempt-merge
+        uses: actions/github-script@v8
+        env:
+          GITHUB_APP_USERNAME: '${{ steps.auto-merge-token.outputs.app-slug }}[bot]'
+          GITHUB_APP_EMAIL: '${{ steps.auto-merge-token.outputs.user-id }}+${{ steps.auto-merge-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+        with:
+          github-token: ${{ steps.auto-merge-token.outputs.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const prNumber = pr.number;
+            
+            core.info(`Processing PR #${prNumber}`);
+            core.setOutput('result', 'failed') // Default to failed unless we succeed later
+
+            // 2. Polling Loop for Checks
+            // We wait until all OTHER checks are completed.
+            const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+            const MAX_WAIT_MS = 10 * 60 * 1000; // 10 minutes timeout
+            const RETRY_MS = 10000; // Check every 10 seconds
+            const startTime = Date.now();
+            
+            let allChecks = [];
+            
+            core.info("Verifying check status...");
+            
+            while (true) {
+              // Fetch latest checks for the commit
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: pr.head.sha,
+                filter: 'latest'
+              });
+              
+              allChecks = checks.check_runs;
+
+              // CRITICAL: Exclude THIS job from the check list.
+              // 'context.job' is the job ID from YAML ('auto-merge').
+              // We filter out any check run with this name.
+              const otherChecks = allChecks.filter(run => run.name !== context.job);
+
+              const pending = otherChecks.filter(run => run.status !== 'completed');
+
+              if (pending.length === 0) {
+                core.info("All other checks have completed.");
+                break;
+              }
+
+              if (Date.now() - startTime > MAX_WAIT_MS) {
+                core.setOutput('result', 'failed')
+                core.setFailed(`Timeout waiting for checks: ${pending.map(c => c.name).join(', ')}`);
+                pending.forEach(c => core.info(` - ${c.name}: ${c.status} / ${c.conclusion}`));
+                return;
+              }
+
+              core.info(`Waiting for ${pending.length} checks to complete:`);
+              pending.forEach(c => core.info(` - ${c.name}: ${c.status} / ${c.conclusion}`));
+              await sleep(RETRY_MS);
+            }
+
+            // Fetch latest checks for the commit
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: pr.head.sha,
+              filter: 'latest'
+            });
+            
+            allChecks = checks.check_runs;
+
+            // 3. Validate Conclusions
+            // Now that everything is completed, check if they passed.
+            const otherChecks = allChecks.filter(run => run.name !== context.job);
+            
+            // Fail if any check is incomplete or concluded with failure/cancelled
+            // Note: We accept 'neutral' and 'skipped' as passing
+            const badChecks = otherChecks.filter(run => 
+              run.status !== 'completed' || 
+              !['success', 'skipped', 'neutral'].includes(run.conclusion)
+            );
+
+            if (badChecks.length > 0) {
+              core.setOutput('result', 'failed');
+              core.setFailed(`Not all checks are green yet. Found ${badChecks.length} incomplete or failed checks:`);
+              badChecks.forEach(c => core.info(` - ${c.name}: ${c.status} / ${c.conclusion}`));
+              return;
+            }
+
+            // 4. Check for the "auto-approved" label
+            const hasLabel = pr.labels.some(l => l.name === "auto-approved");
+            if (!hasLabel) {
+              core.setOutput('result', 'failed');
+              core.setFailed("PR does not have 'auto-approved' label. Skipping.");
+              return;
+            }
+
+            // 5. Check if PR is strictly up-to-date (Fast Forward possible)
+            const prBaseSha = pr.base.sha;
+            const targetBranch = pr.base.ref;
+
+            // Get current SHA of the target branch from remote
+            const { data: refData } = await github.rest.git.getRef({
+              owner,
+              repo,
+              ref: `heads/${targetBranch}`
+            });
+            const currentBaseSha = refData.object.sha;
+
+            if (prBaseSha !== currentBaseSha) {
+              core.setOutput('result', 're-triggered');
+              core.setFailed(`PR is behind ${targetBranch}. Cannot fast-forward merge.`);
+              core.info("Asking Dependabot to recreate PR...");
+              
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: "@dependabot recreate"
+              });
+              return;
+            }
+
+            // 6. Merge
+            core.info("PR is clean, labelled, and strictly up-to-date. Merging via Git CLI...");
+            
+            let gitOutput = '';
+            let gitError = '';
+            const execOptions = {
+              ignoreReturnCode: false,
+              listeners: {
+                stdout: (data) => { gitOutput += data.toString(); },
+                stderr: (data) => { gitError += data.toString(); }
+              }
+            };
+
+            try {
+              // Configure git user
+              const botUserName = process.env.GITHUB_APP_USERNAME || 'github-actions[bot]';
+              const botUserEmail = process.env.GITHUB_APP_EMAIL || '41898282+github-actions[bot]@users.noreply.github.com';
+
+              await exec.exec('git', ['config', 'user.name', botUserName], execOptions);
+              await exec.exec('git', ['config', 'user.email', botUserEmail], execOptions);
+              // Fetch and checkout target branch
+              await exec.exec('git', ['fetch', 'origin', targetBranch], execOptions);
+              await exec.exec('git', ['checkout', targetBranch], execOptions);
+
+              // Fetch PR commit
+              await exec.exec('git', ['fetch', 'origin', pr.head.sha], execOptions);
+
+              // Fast-forward merge
+              await exec.exec('git', ['merge', '--ff-only', pr.head.sha], execOptions);
+
+              // Push
+              await exec.exec('git', ['push', 'origin', targetBranch], execOptions);
+
+              core.info("Fast-forward merge and push successful.");
+              core.setOutput('result', 'success');
+            } catch (error) {
+              core.setOutput('result', 'failed');
+              core.info(`Git CLI failed: ${error.message}`);
+              
+              // Check if failure is due to FF merge or Push rejection (concurrent modification)
+              // Combine stdout and stderr for a comprehensive check
+              const combinedOutput = (gitError + gitOutput).toLowerCase();
+              const isFastForwardError = combinedOutput.includes('not possible to fast-forward');
+              const isPushError = combinedOutput.includes('updates were rejected') || combinedOutput.includes('failed to push some refs');
+
+              if (isFastForwardError || isPushError) {
+                core.info("Merge/Push failed due to concurrency issues. Requesting Dependabot to recreate...");
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  body: "@dependabot recreate"
+                });
+              }
+
+              core.setFailed(
+                `Git CLI merge workflow failed. ` +
+                `Error: ${error.message}. ` +
+                `Git stdout: ${gitOutput || '[empty]'}. ` +
+                `Git stderr: ${gitError || '[empty]'}.`
+              );
+            }
+
+      - name: Comment automerge results
+        uses: actions/github-script@v8
+        if: always() && steps.attempt-merge.outputs.result != 're-triggered'
+        env:
+          MERGE_RESULT: ${{ steps.attempt-merge.outputs.result }}
+        with:
+          github-token: ${{ steps.auto-merge-token.outputs.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const prNumber = pr.number;
+
+            const jobSummaryUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            const prHead = pr?.head;
+            const headCommitSha = prHead?.sha ?? process.env.GITHUB_SHA ?? '';
+            const shortSha = headCommitSha ? headCommitSha.slice(0, 7) : 'unknown';
+            const runResult = process.env.MERGE_RESULT?.toLowerCase() ?? '';
+            const isFailure = runResult === 'failed';
+
+            const marker = '<!-- dependabot-merge-comment -->';
+            const heading = isFailure
+              ? '## ⚠️ Dependabot Auto Merge Failed'
+              : '## 🤖 Dependabot Auto Merge Succeeded';
+            const narration = `Results from commit ${shortSha}, view the full [workflow run↗️](${jobSummaryUrl}) for details.`;
+            const bodySections = [
+              heading,
+              narration
+            ];
+
+            const existingComments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner,
+                repo,
+                issue_number: prNumber,
+                per_page: 100,
+              },
+            );
+
+            const previous = existingComments.find((comment) =>
+              comment.body?.includes(marker),
+            );
+
+            if (previous) {
+              bodySections.push(':recycle: This comment has been updated with latest results.');
+            }
+
+            const body = `${marker}\n${bodySections.join('\n\n')}\n${marker}`;
+
+            if (previous) {
+              core.info(`Updating existing auto merge comment (${previous.id}).`);
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body,
+              });
+            } else {
+              core.info('Creating new auto merge comment.');
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body,
+              });
+            }
