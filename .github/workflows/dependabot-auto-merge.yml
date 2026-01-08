@@ -40,8 +40,17 @@ jobs:
         with:
           token: ${{ steps.auto-merge-token.outputs.token }}
 
+      - name: Fetch Dependabot Metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
       - name: Attempt Merge
         id: attempt-merge
+        if: |
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch'
         uses: actions/github-script@v8
         env:
           GITHUB_APP_USERNAME: '${{ steps.auto-merge-token.outputs.app-slug }}[bot]'
@@ -98,7 +107,7 @@ jobs:
               }
 
               core.info(`Waiting for ${pending.length} checks to complete:`);
-              pending.forEach(c => core.info(` - ${c.name}: ${c.status} / ${c.conclusion}`));
+              pending.forEach(c => core.info(` - ${c.name}: ${c.status}`));
               await sleep(RETRY_MS);
             }
 
@@ -130,12 +139,47 @@ jobs:
               return;
             }
 
-            // 4. Check for the "auto-approved" label
-            const hasLabel = pr.labels.some(l => l.name === "auto-approved");
-            if (!hasLabel) {
-              core.setOutput('result', 'failed');
-              core.setFailed("PR does not have 'auto-approved' label. Skipping.");
-              return;
+            // 4. Auto Approve PR if not already approved
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            const botUserName = process.env.GITHUB_APP_USERNAME || 'github-actions[bot]';
+            const shortSha = pr.head.sha.slice(0, 7);
+
+            const alreadyApproved = reviews.some((review) =>
+              (review.user.login === botUserName) &&
+              review.commit_id === pr.head.sha &&
+              review.state === 'APPROVED'
+            );
+
+            if (!alreadyApproved) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: ['auto-approved']
+              });
+
+              const heading = '## ✅ Dependabot PR Auto Approved';
+              const narration = `Approved automatically because update is **non-major** and all checks have passed.`;
+              const bodySections = [
+                heading,
+                narration,
+                `Results from commit ${shortSha}`
+              ];
+
+              const body = `${bodySections.join('\n\n')}`;
+
+              await github.rest.pulls.createReview({
+                owner,
+                repo,
+                pull_number: prNumber,
+                event: 'APPROVE',
+                body: body
+              });
             }
 
             // 5. Check if PR is strictly up-to-date (Fast Forward possible)
@@ -179,7 +223,7 @@ jobs:
 
             try {
               // Configure git user
-              const botUserName = process.env.GITHUB_APP_USERNAME || 'github-actions[bot]';
+              // botUserName is defined above
               const botUserEmail = process.env.GITHUB_APP_EMAIL || '41898282+github-actions[bot]@users.noreply.github.com';
 
               await exec.exec('git', ['config', 'user.name', botUserName], execOptions);
@@ -240,9 +284,7 @@ jobs:
             const prNumber = pr.number;
 
             const jobSummaryUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
-            const prHead = pr?.head;
-            const headCommitSha = prHead?.sha ?? process.env.GITHUB_SHA ?? '';
-            const shortSha = headCommitSha ? headCommitSha.slice(0, 7) : 'unknown';
+            const shortSha = pr.head.sha.slice(0, 7);
             const runResult = process.env.MERGE_RESULT?.toLowerCase() ?? '';
             const isFailure = runResult === 'failed';
 
