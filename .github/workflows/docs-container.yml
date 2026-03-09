@@ -34,7 +34,7 @@ jobs:
         run: docker run --rm -i -v './.hadolint.yaml:/.hadolint.yaml' hadolint/hadolint < Dockerfile
 
       - name: Validate build configuration
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           call: check
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Build and export to Docker
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -91,7 +91,7 @@ jobs:
 
       - name: Build and push image
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         if: success() && github.ref == 'refs/heads/main'
         with:
           context: .
