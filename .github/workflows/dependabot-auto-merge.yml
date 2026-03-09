@@ -273,7 +273,11 @@ jobs:
 
       - name: Comment automerge results
         uses: actions/github-script@v8
-        if: always() && steps.attempt-merge.outputs.result != 're-triggered'
+        if: |
+          always() &&
+          steps.attempt-merge.outputs.result != 're-triggered' &&
+          (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch')
         env:
           MERGE_RESULT: ${{ steps.attempt-merge.outputs.result }}
         with:
