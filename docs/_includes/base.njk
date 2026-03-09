@@ -5,12 +5,12 @@
 
 {% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
 
-{% block header %}
+{% block govukHeader %}
   {{ appHeader(options.header) }}
   {{ appServiceNavigation(options.serviceNavigation) if options.serviceNavigation }}
-  <div class="govuk-width-container" data-axe-exclude="It is acceptable that this is outside a landmark region">
-  {{ govukPhaseBanner(options.header.phaseBanner) if options.header.phaseBanner }}
-</div>
+  {% block phaseBanner %}
+    {{ govukPhaseBanner(options.header.phaseBanner) if options.header.phaseBanner }}
+  {% endblock %}
 {% endblock %}
 
 {% block bodyEnd %}
