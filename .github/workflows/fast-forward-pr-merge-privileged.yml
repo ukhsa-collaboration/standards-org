@@ -301,7 +301,7 @@ jobs:
 
       - name: Filter paths
         id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           base: ${{ env.BASE_REF }}
           ref: ${{ env.HEAD_BRANCH }}
