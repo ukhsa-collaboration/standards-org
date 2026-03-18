@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Generate App Token
         id: auto-merge-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_CLIENT_ID }}
           private-key: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_PRIVATE_KEY }}
