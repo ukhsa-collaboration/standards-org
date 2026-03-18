@@ -13,7 +13,12 @@ const repos = [
     url: 'https://github.com/ukhsa-collaboration/standards-tech-radar.git',
     branch: 'main',
     outputDirName: 'tech-radar',
-  }
+  },
+  {
+    url: 'https://github.com/ukhsa-collaboration/standards-qat.git',
+    branch: 'main',
+    outputDirName: 'qat',
+  },
   // Add more repos as needed
 ];
 
