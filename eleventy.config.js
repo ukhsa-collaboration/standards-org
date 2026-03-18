@@ -77,6 +77,12 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ "node_modules/mermaid/dist/mermaid.esm.min.mjs": "assets/mermaid/mermaid.esm.min.mjs" });
   eleventyConfig.addPassthroughCopy({ "node_modules/mermaid/dist/chunks/**/*.mjs": "assets/mermaid/chunks/mermaid.esm.min" });
 
+  // copy all png and jpg files relative to the markdown files that use them,
+  // this ensures images used in the standards docs that make up the site will
+  // be copied at build time when the site is generated
+  eleventyConfig.addPassthroughCopy("docs/**/*.png", {mode: "html-relative"});
+  eleventyConfig.addPassthroughCopy("docs/**/*.jpg", {mode: "html-relative"});
+
   eleventyConfig.setUseGitIgnore(false);
 
   if (process.env.GITHUB_ACTIONS) {
