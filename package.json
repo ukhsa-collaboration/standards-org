@@ -33,7 +33,7 @@
     "ukhsa"
   ],
   "dependencies": {
-    "@11ty/eleventy": "^3.1.2",
+    "@11ty/eleventy": "^3.1.5",
     "@x-govuk/govuk-eleventy-plugin": "^9.0.1",
     "fs-extra": "^11.3.4",
     "github-slugger": "^2.0.0",
