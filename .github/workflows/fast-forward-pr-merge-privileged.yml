@@ -61,7 +61,7 @@ jobs:
           echo "response: $RESPONSE"
 
       - name: Set failure message
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         if: ${{ always() }}
         with:
           script: core.setFailed("Please check the workflow run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }} for details.");
@@ -137,7 +137,7 @@ jobs:
           echo "response: $RESPONSE"
 
       - name: Set failure message
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         if: ${{ steps.permission.outputs.permission != 'write' && steps.permission.outputs.permission != 'admin' }}
         with:
           script: core.setFailed("You do not have permission to merge this PR. Please contact a member of ${{ github.server_url }}/orgs/${{ github.repository_owner }}/teams/api-standards-team for assistance.");

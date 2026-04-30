@@ -39,7 +39,7 @@ jobs:
           echo "permission=$RESPONSE" >> $GITHUB_OUTPUT
 
       - name: Set failure message
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         if: ${{ steps.permission.outputs.permission != 'write' && steps.permission.outputs.permission != 'admin' }}
         with:
           script: core.setFailed("You do not have permission to merge this PR. Please contact a member of ${{ github.server_url }}/orgs/${{ github.repository_owner }}/teams/api-standards-team for assistance.");
