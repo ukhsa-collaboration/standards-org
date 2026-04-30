@@ -138,7 +138,7 @@ jobs:
         npm run build
 
     - name: Upload build
-      uses: actions/upload-pages-artifact@v4
+      uses: actions/upload-pages-artifact@v5
       with:
         path: _site
 
