@@ -3,9 +3,12 @@ name: Dependabot Auto Merge
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-
     branches:
       - main
+
+env:
+  CODEOWNER_ORG: ukhsa-collaboration
+  CODEOWNER_TEAM: org-standards-admins
 
 permissions:
   contents: write
@@ -27,7 +30,7 @@ jobs:
         id: auto-merge-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_CLIENT_ID }}
+          client-id: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_CLIENT_ID }}
           private-key: ${{ secrets.UKHSA_STANDARDS_AUTO_MERGE_APP_PRIVATE_KEY }}
           repositories: |
             ${{ github.event.repository.name }}
@@ -42,7 +45,7 @@ jobs:
 
       - name: Fetch Dependabot Metadata
         id: dependabot-metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -50,8 +53,9 @@ jobs:
         id: attempt-merge
         if: |
           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' ||
-          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch'
-        uses: actions/github-script@v8
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-major'
+        uses: actions/github-script@v9
         env:
           GITHUB_APP_USERNAME: '${{ steps.auto-merge-token.outputs.app-slug }}[bot]'
           GITHUB_APP_EMAIL: '${{ steps.auto-merge-token.outputs.user-id }}+${{ steps.auto-merge-token.outputs.app-slug }}[bot]@users.noreply.github.com'
@@ -61,9 +65,11 @@ jobs:
             const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;
             const prNumber = pr.number;
-            
-            core.info(`Processing PR #${prNumber}`);
-            core.setOutput('result', 'failed') // Default to failed unless we succeed later
+            const updateType = '${{ steps.dependabot-metadata.outputs.update-type }}';
+            const isMajor = updateType === 'version-update:semver-major';
+
+            core.info(`Processing PR #${prNumber} (${updateType})`);
+            core.setOutput('merge-result','failed') // Default to failed unless we succeed later
 
             // 2. Polling Loop for Checks
             // We wait until all OTHER checks are completed.
@@ -100,7 +106,7 @@ jobs:
               }
 
               if (Date.now() - startTime > MAX_WAIT_MS) {
-                core.setOutput('result', 'failed')
+                core.setOutput('merge-result','failed')
                 core.setFailed(`Timeout waiting for checks: ${pending.map(c => c.name).join(', ')}`);
                 pending.forEach(c => core.info(` - ${c.name}: ${c.status} / ${c.conclusion}`));
                 return;
@@ -133,13 +139,14 @@ jobs:
             );
 
             if (badChecks.length > 0) {
-              core.setOutput('result', 'failed');
+              core.setOutput('merge-result','failed');
               core.setFailed(`Not all checks are green yet. Found ${badChecks.length} incomplete or failed checks:`);
               badChecks.forEach(c => core.info(` - ${c.name}: ${c.status} / ${c.conclusion}`));
               return;
             }
 
-            // 4. Auto Approve PR if not already approved
+            // 4. For major updates, verify an approved review from a codeowner team member.
+            //    For minor/patch, auto-approve if not already done.
             const { data: reviews } = await github.rest.pulls.listReviews({
               owner,
               repo,
@@ -149,37 +156,61 @@ jobs:
             const botUserName = process.env.GITHUB_APP_USERNAME || 'github-actions[bot]';
             const shortSha = pr.head.sha.slice(0, 7);
 
-            const alreadyApproved = reviews.some((review) =>
-              (review.user.login === botUserName) &&
-              review.commit_id === pr.head.sha &&
-              review.state === 'APPROVED'
-            );
+            if (isMajor) {
+              const approvedReviews = reviews.filter(r =>
+                r.state === 'APPROVED' && r.user.login !== botUserName
+              );
 
-            if (!alreadyApproved) {
-              await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: prNumber,
-                labels: ['auto-approved']
-              });
+              if (approvedReviews.length === 0) {
+                core.setOutput('merge-result','pending');
+                core.info(`Major update: no codeowner approval yet. Waiting for a member of @${process.env.CODEOWNER_ORG}/${process.env.CODEOWNER_TEAM} to approve.`);
+                return;
+              }
 
-              const heading = '## ✅ Dependabot PR Auto Approved';
-              const narration = `Approved automatically because update is **non-major** and all checks have passed.`;
-              const bodySections = [
-                heading,
-                narration,
-                `Results from commit ${shortSha}`
-              ];
+              // Verify the codeowner review ruleset is satisfied by checking mergeable_state.
+              // GitHub sets this to 'blocked' when required reviews (including codeowner) are unmet,
+              // regardless of which token is used to query it.
+              const { data: prData } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+              if (prData.mergeable_state === 'blocked') {
+                core.setOutput('merge-result','pending');
+                core.info(`Major update: approvals exist but codeowner review ruleset is not yet satisfied (mergeable_state: blocked). Still waiting.`);
+                return;
+              }
 
-              const body = `${bodySections.join('\n\n')}`;
+              core.info(`Codeowner approval confirmed (mergeable_state: ${prData.mergeable_state}). Proceeding with major update merge.`);
+            } else {
+              const alreadyApproved = reviews.some((review) =>
+                (review.user.login === botUserName) &&
+                review.commit_id === pr.head.sha &&
+                review.state === 'APPROVED'
+              );
 
-              await github.rest.pulls.createReview({
-                owner,
-                repo,
-                pull_number: prNumber,
-                event: 'APPROVE',
-                body: body
-              });
+              if (!alreadyApproved) {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  labels: ['auto-approved']
+                });
+
+                const heading = '## ✅ Dependabot PR Auto Approved';
+                const narration = `Approved automatically because update is **non-major** and all checks have passed.`;
+                const bodySections = [
+                  heading,
+                  narration,
+                  `Results from commit ${shortSha}`
+                ];
+
+                const body = `${bodySections.join('\n\n')}`;
+
+                await github.rest.pulls.createReview({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  event: 'APPROVE',
+                  body: body
+                });
+              }
             }
 
             // 5. Check if PR is strictly up-to-date (Fast Forward possible)
@@ -195,7 +226,7 @@ jobs:
             const currentBaseSha = refData.object.sha;
 
             if (prBaseSha !== currentBaseSha) {
-              core.setOutput('result', 're-triggered');
+              core.setOutput('merge-result','re-triggered');
               core.setFailed(`PR is behind ${targetBranch}. Cannot fast-forward merge.`);
               core.info("Asking Dependabot to recreate PR...");
               
@@ -242,9 +273,9 @@ jobs:
               await exec.exec('git', ['push', 'origin', targetBranch], execOptions);
 
               core.info("Fast-forward merge and push successful.");
-              core.setOutput('result', 'success');
+              core.setOutput('merge-result','success');
             } catch (error) {
-              core.setOutput('result', 'failed');
+              core.setOutput('merge-result','failed');
               core.info(`Git CLI failed: ${error.message}`);
               
               // Check if failure is due to FF merge or Push rejection (concurrent modification)
@@ -272,14 +303,16 @@ jobs:
             }
 
       - name: Comment automerge results
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         if: |
           always() &&
-          steps.attempt-merge.outputs.result != 're-triggered' &&
+          steps.attempt-merge.conclusion != 'skipped' &&
+          steps.attempt-merge.outputs.merge-result != 're-triggered' &&
           (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' ||
-          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch')
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-major')
         env:
-          MERGE_RESULT: ${{ steps.attempt-merge.outputs.result }}
+          MERGE_RESULT: ${{ steps.attempt-merge.outputs.merge-result }}
         with:
           github-token: ${{ steps.auto-merge-token.outputs.token }}
           script: |
@@ -290,13 +323,21 @@ jobs:
             const jobSummaryUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
             const shortSha = pr.head.sha.slice(0, 7);
             const runResult = process.env.MERGE_RESULT?.toLowerCase() ?? '';
+            const isPending = runResult === 'pending';
             const isFailure = runResult === 'failed';
+            const isSuccess = runResult === 'success';
 
             const marker = '<!-- dependabot-merge-comment -->';
-            const heading = isFailure
+            const heading = isPending
+              ? '## ⏳ Dependabot Auto Merge Awaiting Approval'
+              : isFailure
               ? '## ⚠️ Dependabot Auto Merge Failed'
-              : '## 🤖 Dependabot Auto Merge Succeeded';
-            const narration = `Results from commit ${shortSha}, view the full [workflow run↗️](${jobSummaryUrl}) for details.`;
+              : isSuccess
+              ? '## 🤖 Dependabot Auto Merge Succeeded'
+              : '## ❓ Dependabot Auto Merge Unknown State';
+            const narration = isPending
+              ? `This is a **major** version update. All checks have passed, but a member of @${process.env.CODEOWNER_ORG}/${process.env.CODEOWNER_TEAM} must approve before it can be merged automatically.`
+              : `Results from commit ${shortSha}, view the full [workflow run↗️](${jobSummaryUrl}) for details.`;
             const bodySections = [
               heading,
               narration
