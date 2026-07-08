@@ -11,6 +11,8 @@ on:
           - ukhsa-collaboration/standards-org
           - ukhsa-collaboration/standards-api
           - ukhsa-collaboration/standards-development
+          - ukhsa-collaboration/standards-tech-radar
+          - ukhsa-collaboration/standards-qat
       upstream_sha:
         description: Commit SHA in the triggering repository
         type: string
