@@ -35,7 +35,7 @@
   "dependencies": {
     "@11ty/eleventy": "^3.1.6",
     "@x-govuk/govuk-eleventy-plugin": "^9.0.2",
-    "fs-extra": "^11.3.6",
+    "fs-extra": "^11.4.0",
     "github-slugger": "^2.0.0",
     "mermaid": "^11.16.0",
     "titlecase": "^1.1.3"
