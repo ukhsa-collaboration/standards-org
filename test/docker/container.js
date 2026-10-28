@@ -50,6 +50,14 @@ describe('container image tests', async () => {
     assert.ok(resp.ok);
   });
 
+  await it('The mermaid init script is accessible', async () => {
+    // act
+    const resp = await fetch(`${getBaseUrl()}/assets/mermaid/init.js`);
+
+    // assert
+    assert.ok(resp.ok);
+  });
+
   await it('The custom doc pages have the expected content', async () => {
     // act
     const resp = await fetch(`${getBaseUrl()}/${DOCS_NAME}/`);

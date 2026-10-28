@@ -14,5 +14,5 @@
 {% endblock %}
 
 {% block bodyEnd %}
-  {% block scripts %}<script type="module">import mermaid from "{{ "/assets/mermaid/mermaid.esm.min.mjs" | url }}";mermaid.initialize({startOnLoad:true});</script>{% endblock %}
+  {% block scripts %}<script type="module" src="{{ "/assets/mermaid/init.js" | url }}"></script>{% endblock %}
 {% endblock %}

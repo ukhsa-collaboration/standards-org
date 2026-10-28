@@ -1,3 +1,6 @@
+@use "sass:list";
+@use "sass:map";
+
   // Use GOV.UK Frontend
 @use "pkg:govuk-frontend/dist/govuk" as * with (
   $govuk-assets-path: "/assets/",
@@ -18,11 +21,47 @@
 }
 
 .app-inset-text--note {
-  background-color: govuk-tint(govuk-colour("blue"), 90%);
+  background-color: govuk-colour("blue", $variant: "tint-95");
   border-color: govuk-colour("blue");
 }
 
 .app-inset-text--tip {
-  background-color: govuk-tint(govuk-colour("green"), 75%);
+  background-color: govuk-colour("green", $variant: "tint-80");
   border-color: govuk-colour("green");
+}
+
+// Mermaid diagram colours, read by src/mermaid/theme-variables.js.
+// Mermaid needs real colour values, so resolve the brand colour rather than
+// using govuk-functional-colour(), which returns a var() reference.
+$_app-brand-colour: govuk-resolve-colour(map.get($govuk-functional-colours, "brand"));
+
+// Border and fill pairs, assigned in order to participants, nodes and subgraphs.
+// The brand colour has no palette tints, so its fill uses the nearest, teal.
+$app-diagram-palette: (
+  ($_app-brand-colour, govuk-colour("teal", $variant: "tint-95")),
+  (govuk-colour("blue"), govuk-colour("blue", $variant: "tint-95")),
+  (govuk-colour("green"), govuk-colour("green", $variant: "tint-95")),
+  (govuk-colour("orange"), govuk-colour("orange", $variant: "tint-95")),
+  (govuk-colour("purple"), govuk-colour("purple", $variant: "tint-95")),
+  (govuk-colour("magenta"), govuk-colour("magenta", $variant: "tint-95")),
+  (govuk-colour("red"), govuk-colour("red", $variant: "tint-95")),
+  (govuk-colour("brown"), govuk-colour("brown", $variant: "tint-95"))
+);
+
+$_app-diagram-borders: ();
+$_app-diagram-fills: ();
+@each $border, $fill in $app-diagram-palette {
+  $_app-diagram-borders: list.append($_app-diagram-borders, $border, $separator: comma);
+  $_app-diagram-fills: list.append($_app-diagram-fills, $fill, $separator: comma);
+}
+
+:root {
+  --app-diagram-text: #{govuk-colour("black")};
+  --app-diagram-borders: #{$_app-diagram-borders};
+  --app-diagram-fills: #{$_app-diagram-fills};
+  --app-diagram-label-background: #{govuk-colour("black", $variant: "tint-95")};
+  --app-diagram-subgraph-fill: #{govuk-colour("black", $variant: "tint-95")};
+  --app-diagram-subgraph-border: #{govuk-colour("black", $variant: "tint-80")};
+  --app-diagram-note-fill: #{govuk-colour("yellow", $variant: "tint-80")};
+  --app-diagram-note-border: #{govuk-colour("yellow", $variant: "shade-25")};
 }

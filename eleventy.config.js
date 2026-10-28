@@ -76,6 +76,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ "docs/assets/images": "assets/images" });
   eleventyConfig.addPassthroughCopy({ "node_modules/mermaid/dist/mermaid.esm.min.mjs": "assets/mermaid/mermaid.esm.min.mjs" });
   eleventyConfig.addPassthroughCopy({ "node_modules/mermaid/dist/chunks/**/*.mjs": "assets/mermaid/chunks/mermaid.esm.min" });
+  eleventyConfig.addPassthroughCopy({ "src/mermaid": "assets/mermaid" });
 
   // copy all png and jpg files relative to the markdown files that use them,
   // this ensures images used in the standards docs that make up the site will
